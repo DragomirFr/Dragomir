@@ -1,6 +1,4 @@
 {
-    { "source": "/timetable", "destination": "/timetable.html" },
+    { "source": "/timetable", "destination": "/timetable.html" }
 
-    
-  
 }
