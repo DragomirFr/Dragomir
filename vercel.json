@@ -1,4 +1,8 @@
 {
-    { "source": "/timetable", "destination": "/timetable.html" }
-
+  "rewrites": [
+    {
+      "source": "/timetable",
+      "destination": "/timetable.html"
+    }
+  ]
 }
