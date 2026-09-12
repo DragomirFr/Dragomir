@@ -567,12 +567,7 @@ function createMatchCard(match) {
     `;
 
 
-    if (
-        p1 &&
-        p2 &&
-        match.status !==
-            "completed"
-    ) {
+    if (p1 && p2) {
 
         card.classList.add("match--selectable");
 
@@ -582,12 +577,17 @@ function createMatchCard(match) {
             playerRow.setAttribute("tabindex", "0");
             playerRow.setAttribute(
                 "aria-label",
-                `Record ${playerRow.querySelector(".player-info span").textContent.trim()} as the winner`
+                match.status === "completed"
+                    ? `Change the winner to ${playerRow.querySelector(".player-info span").textContent.trim()}`
+                    : `Record ${playerRow.querySelector(".player-info span").textContent.trim()} as the winner`
             );
 
             const selectWinner = () =>
             {
                 if (card.classList.contains("is-saving"))
+                    return;
+
+                if (match.winner_id === playerRow.dataset.playerId)
                     return;
 
                 card.classList.add("is-saving");
@@ -620,6 +620,8 @@ function createMatchCard(match) {
 
 async function completeMatch(match, winner) {
 
+    const wasCompleted = match.status === "completed";
+
 
     const {
         error
@@ -648,9 +650,9 @@ async function completeMatch(match, winner) {
     }
 
 
-    showToast("Winner recorded · 3 points awarded");
+    showToast(wasCompleted ? "Winner changed · standings updated" : "Winner recorded · 3 points awarded");
 
-    const completedCount = matches.filter(item => item.status === "completed").length + 1;
+    const completedCount = matches.filter(item => item.status === "completed").length + (wasCompleted ? 0 : 1);
 
     if (completedCount === matches.length) {
         const finishedMatch = {
