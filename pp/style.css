@@ -618,6 +618,8 @@ input:focus {
     justify-content: space-between;
 
     align-items: center;
+    min-width: 0;
+    min-height: 48px;
 }
 
 
@@ -659,6 +661,13 @@ input:focus {
     align-items: center;
 
     gap: 9px;
+    min-width: 0;
+}
+
+.player-info span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 
@@ -923,6 +932,7 @@ td {
     transition: 0.2s;
 
     z-index: 200;
+    max-width: calc(100vw - 32px);
 }
 
 
@@ -938,42 +948,100 @@ td {
 @media (max-width: 800px) {
 
     .topbar {
-        padding: 0 15px;
+        height: auto;
+        min-height: 68px;
+        padding: 10px 16px;
     }
 
-    .top-actions .secondary {
-        display: none;
+    .top-actions {
+        width: 100%;
+    }
+
+    .top-actions button {
+        flex: 1;
+        min-height: 46px;
+        padding: 10px 12px;
     }
 
     main {
-        padding: 25px 15px 80px;
+        padding: 22px 16px 72px;
     }
 
     .setup-card {
-        margin: 20px auto;
-        padding: 22px;
+        margin: 10px auto;
+        padding: 24px 18px;
+        border-radius: 15px;
     }
 
     .players-grid {
         grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .player-input input {
+        min-height: 46px;
+        font-size: 16px;
     }
 
     .stats {
         grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 22px;
+    }
+
+    .stat-card {
+        padding: 14px;
+    }
+
+    .stat-card strong {
+        font-size: 23px;
     }
 
     .tournament-header {
         align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+        padding: 20px 18px;
+        border-radius: 15px;
     }
 
-    .bracket.round-robin {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .tournament-status {
+        align-self: flex-start;
     }
 
-}
+    .bracket-section,
+    .leaderboard-section {
+        padding: 18px 14px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+    }
 
-@media (max-width: 520px) {
+    .section-header {
+        margin-bottom: 18px;
+    }
+
     .bracket.round-robin {
         grid-template-columns: 1fr;
+        gap: 10px;
     }
+
+    th,
+    td {
+        padding: 11px 8px;
+        font-size: 12px;
+    }
+
+    th {
+        font-size: 10px;
+        letter-spacing: 0.6px;
+    }
+
+    .winner-section {
+        padding: 48px 16px;
+    }
+
+    .winner-section h2 {
+        font-size: 34px;
+    }
+
 }
