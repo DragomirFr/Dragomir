@@ -577,9 +577,11 @@ function createMatchCard(match) {
             playerRow.setAttribute("tabindex", "0");
             playerRow.setAttribute(
                 "aria-label",
-                match.status === "completed"
-                    ? `Change the winner to ${playerRow.querySelector(".player-info span").textContent.trim()}`
-                    : `Record ${playerRow.querySelector(".player-info span").textContent.trim()} as the winner`
+                match.winner_id === playerRow.dataset.playerId
+                    ? "Clear this match result"
+                    : match.status === "completed"
+                        ? `Change the winner to ${playerRow.querySelector(".player-info span").textContent.trim()}`
+                        : `Record ${playerRow.querySelector(".player-info span").textContent.trim()} as the winner`
             );
 
             const selectWinner = () =>
@@ -587,8 +589,11 @@ function createMatchCard(match) {
                 if (card.classList.contains("is-saving"))
                     return;
 
-                if (match.winner_id === playerRow.dataset.playerId)
+                if (match.winner_id === playerRow.dataset.playerId) {
+                    card.classList.add("is-saving");
+                    clearMatchResult(match);
                     return;
+                }
 
                 card.classList.add("is-saving");
                 completeMatch(match, playerRow.dataset.playerId);
@@ -679,6 +684,45 @@ async function completeMatch(match, winner) {
     sendLiveUpdate();
 }
 
+async function clearMatchResult(match) {
+    const {
+        error
+    } = await supabaseClient
+        .from("matches")
+        .update({
+            winner_id: null,
+            status: "upcoming"
+        })
+        .eq("id", match.id);
+
+    if (error) {
+        console.error(error);
+        showToast(saveErrorMessage(error, "Could not clear this result."));
+        return;
+    }
+
+    if (tournament.status === "completed") {
+        const {
+            error: tournamentError
+        } = await supabaseClient
+            .from("tournaments")
+            .update({ winner_id: null, status: "active" })
+            .eq("id", tournament.id);
+
+        if (tournamentError) {
+            console.error(tournamentError);
+            showToast(saveErrorMessage(tournamentError, "Result cleared, but tournament status could not update."));
+            return;
+        }
+
+        tournament = { ...tournament, winner_id: null, status: "active" };
+    }
+
+    showToast("Result cleared · points removed");
+    await loadTournament();
+    sendLiveUpdate();
+}
+
 
 // ==========================================
 // LEADERBOARD
@@ -760,6 +804,14 @@ function checkWinner() {
         tournament.status !==
             "completed"
     ) {
+
+        document
+            .getElementById("winnerSection")
+            .classList
+            .add("hidden");
+
+        document.getElementById("tournamentStatus").textContent = "In progress";
+        document.getElementById("statusDot").style.background = "var(--green)";
 
         return;
     }
