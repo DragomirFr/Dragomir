@@ -5,7 +5,7 @@
       "destination": "/timetable.html"
     },
     {
-      "source": "/pp",
+      "source": "/pp/",
       "destination": "/pp/index.html"
     }
   ]
