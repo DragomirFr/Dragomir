@@ -3,6 +3,10 @@
     {
       "source": "/timetable",
       "destination": "/timetable.html"
+    },
+    {
+      "source": "/pp",
+      "destination": "/pp/index.html"
     }
   ]
 }
