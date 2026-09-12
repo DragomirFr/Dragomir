@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Bracket</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <div class="top-actions">
+        <button id="newTournamentBtn" class="secondary">
+            New Tournament
+        </button>
+
+        <button id="resetBtn" class="danger">
+            Reset
+        </button>
+    </div>
+
+</header>
+
+
+<main>
+
+    <!-- SETUP -->
+
+    <section id="setupScreen" class="screen">
+
+        <div class="setup-card">
+
+            <div class="setup-heading">
+                <span class="eyebrow">ROUND-ROBIN TOURNAMENT</span>
+
+                <h2>Set up matchday.</h2>
+
+                <p>
+                    Add six players and start your tournament.
+                </p>
+            </div>
+
+
+            <div class="input-group">
+
+                <label>
+                    Tournament name
+                </label>
+
+                <input
+                    id="tournamentName"
+                    type="text"
+                    value="6 Player Tournament"
+                    placeholder="Tournament name"
+                >
+
+            </div>
+
+
+            <div class="players-grid" id="playersSetup">
+
+                <!-- JS creates players -->
+
+            </div>
+
+
+            <button
+                id="startTournamentBtn"
+                class="primary start-btn"
+            >
+                Start Tournament
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- TOURNAMENT -->
+
+    <section id="tournamentScreen" class="screen hidden">
+
+        <div class="tournament-header">
+
+            <div>
+
+                <span class="eyebrow">
+                    TOURNAMENT
+                </span>
+
+                <h2 id="tournamentTitle">
+                    Tournament
+                </h2>
+
+            </div>
+
+
+            <div class="tournament-status">
+
+                <span id="statusDot"></span>
+
+                <span id="tournamentStatus">
+                    In progress
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- STATS -->
+
+        <section class="stats">
+
+            <div class="stat-card">
+                <span>Players</span>
+                <strong id="playerCount">6</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Matches</span>
+                <strong id="matchCount">0</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Completed</span>
+                <strong id="completedCount">0</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Remaining</span>
+                <strong id="remainingCount">0</strong>
+            </div>
+
+        </section>
+
+
+        <!-- BRACKET -->
+
+        <section class="bracket-section">
+
+            <div class="section-header">
+
+                <div>
+                    <h3>Matches</h3>
+
+                    <p>
+                        Click the winner of each fixture to award three points.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div
+                class="bracket"
+                id="bracket"
+            ></div>
+
+        </section>
+
+
+        <!-- LEADERBOARD -->
+
+        <section class="leaderboard-section">
+
+            <div class="section-header">
+
+                <div>
+                    <h3>Leaderboard</h3>
+
+                    <p>
+                        Tournament statistics.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Player</th>
+                            <th>W</th>
+                            <th>Pts</th>
+                            <th>L</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="leaderboard"></tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- WINNER -->
+
+        <section
+            id="winnerSection"
+            class="winner-section hidden"
+        >
+
+            <span class="eyebrow">
+                TOURNAMENT COMPLETE
+            </span>
+
+            <h2 id="winnerName">
+                Winner
+            </h2>
+
+            <p>
+                Congratulations!
+            </p>
+
+        </section>
+
+    </section>
+
+</main>
+
+
+<!-- MATCH MODAL -->
+
+<div
+    id="matchModal"
+    class="modal hidden"
+>
+
+    <div class="modal-content">
+
+        <button
+            id="closeModal"
+            class="modal-close"
+        >
+            ×
+        </button>
+
+        <span class="eyebrow">
+            MATCH RESULT
+        </span>
+
+        <h2 id="modalTitle">
+            Match
+        </h2>
+
+
+        <div class="score-form">
+
+            <div class="score-player">
+
+                <div
+                    class="player-avatar"
+                    id="modalAvatar1"
+                >
+                    A
+                </div>
+
+                <h3 id="modalPlayer1">
+                    Player 1
+                </h3>
+
+                <input
+                    id="score1"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                >
+
+            </div>
+
+
+            <div class="vs">
+                VS
+            </div>
+
+
+            <div class="score-player">
+
+                <div
+                    class="player-avatar"
+                    id="modalAvatar2"
+                >
+                    B
+                </div>
+
+                <h3 id="modalPlayer2">
+                    Player 2
+                </h3>
+
+                <input
+                    id="score2"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                >
+
+            </div>
+
+        </div>
+
+
+        <button
+            id="saveMatch"
+            class="primary"
+        >
+            Save Result
+        </button>
+
+    </div>
+
+</div>
+
+
+<div id="toast"></div>
+
+
+<script src="app.js"></script>
+
+</body>
+
+</html>
