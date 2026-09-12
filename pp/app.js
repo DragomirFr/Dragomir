@@ -11,6 +11,8 @@ const supabaseClient =
 let tournament = null;
 let players = [];
 let matches = [];
+let liveChannel = null;
+let syncInFlight = false;
 
 
 // ==========================================
@@ -227,6 +229,8 @@ document
             await createMatches();
 
             await loadTournament();
+
+            sendLiveUpdate();
 
             showTournament();
 
@@ -670,6 +674,7 @@ async function completeMatch(match, winner) {
 
 
     await loadTournament();
+    sendLiveUpdate();
 }
 
 
@@ -819,6 +824,7 @@ document
             if (!confirmed)
                 return;
 
+            const deletedTournamentId = tournament.id;
 
             await supabaseClient
                 .from("tournaments")
@@ -827,6 +833,8 @@ document
                     "id",
                     tournament.id
                 );
+
+            sendLiveUpdate(deletedTournamentId, "deleted");
 
 
             tournament = null;
@@ -888,29 +896,83 @@ document
 // REALTIME
 // ==========================================
 
-supabaseClient
-    .channel(
-        "tournament-updates"
-    )
+function sendLiveUpdate(tournamentId = tournament && tournament.id, action = "changed") {
+    if (!liveChannel || !tournamentId)
+        return;
 
-    .on(
-        "postgres_changes",
+    liveChannel.send({
+        type: "broadcast",
+        event: "tournament-change",
+        payload: { tournamentId, action }
+    });
+}
 
-        {
-            event: "*",
-            schema: "public",
-            table: "matches"
-        },
+async function syncLiveTournament(tournamentId = tournament && tournament.id) {
+    if (!tournamentId || syncInFlight)
+        return;
 
-        async () => {
+    syncInFlight = true;
 
-            if (tournament) {
+    try {
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .from("tournaments")
+            .select("*")
+            .eq("id", tournamentId)
+            .maybeSingle();
 
-                await loadTournament();
+        if (error)
+            throw error;
 
-            }
+        if (!data)
+            return;
 
+        tournament = data;
+        await loadTournament();
+        showTournament();
+
+    } catch (error) {
+        console.warn("Live sync failed", error);
+
+    } finally {
+        syncInFlight = false;
+    }
+}
+
+liveChannel = supabaseClient
+    .channel("tournament-live")
+    .on("broadcast", { event: "tournament-change" }, ({ payload }) => {
+        if (payload.action === "deleted" && tournament && tournament.id === payload.tournamentId) {
+            tournament = null;
+            players = [];
+            matches = [];
+            tournamentScreen.classList.add("hidden");
+            setupScreen.classList.remove("hidden");
+            createPlayerInputs();
+            return;
         }
-    )
 
+        syncLiveTournament(payload.tournamentId);
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
+        syncLiveTournament();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "tournaments" }, () => {
+        syncLiveTournament();
+    })
     .subscribe();
+
+setInterval(() => {
+    if (document.visibilityState === "visible") {
+        if (tournament) syncLiveTournament();
+        else restoreActiveTournament();
+    }
+}, 5000);
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && tournament) {
+        syncLiveTournament();
+    }
+});
