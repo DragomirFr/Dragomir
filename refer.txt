@@ -1,0 +1,236 @@
+import email
+import imaplib
+import re
+import sys
+import time
+from email.message import Message
+from bs4 import BeautifulSoup
+import pyautogui
+import pyperclip
+
+# =========================
+# CONFIGURATION
+# =========================
+NUM_LOOPS = 49  # <-- Set how many times you want the script to run
+
+HOST = "127.0.0.1"
+PORT = 1143
+USERNAME = "@proton.me"
+PASSWORD = ""
+
+pyautogui.PAUSE = 0.4
+pyautogui.FAILSAFE = True
+
+
+# =========================
+# HELPER FUNCTIONS
+# =========================
+def click_at(x: int, y: int, delay: float = 0.4):
+    """Click specific coordinates."""
+    pyautogui.click(x, y)
+    time.sleep(delay)
+
+
+def copy_then_click_and_paste(x: int, y: int, text: str, delay: float = 0.4):
+    """Pre-load text to clipboard, focus field, clear it, and paste."""
+    pyperclip.copy(text)
+    time.sleep(0.1)
+
+    pyautogui.click(x, y)
+    time.sleep(0.15)
+
+    mod = "command" if sys.platform == "darwin" else "ctrl"
+    pyautogui.hotkey(mod, "a")
+    pyautogui.press("backspace")
+    time.sleep(0.1)
+
+    pyautogui.hotkey(mod, "v")
+    time.sleep(delay)
+
+
+def enter_otp_digits(x: int, y: int, digits: str, delay: float = 0.25):
+    """Focuses the OTP input and fires discrete key events for each digit."""
+    pyautogui.click(x, y)
+    time.sleep(0.3)
+
+    for digit in str(digits).strip():
+        pyautogui.press(digit)
+        time.sleep(delay)
+    time.sleep(0.3)
+
+
+def get_email_body(msg: Message) -> str:
+    """Extract readable text/HTML content from an email."""
+    parts = []
+    if msg.is_multipart():
+        for part in msg.walk():
+            ctype = part.get_content_type()
+            if ctype in ("text/plain", "text/html"):
+                p = part.get_payload(decode=True)
+                if isinstance(p, bytes):
+                    parts.append(p.decode("utf-8", errors="ignore"))
+    else:
+        p = msg.get_payload(decode=True)
+        if isinstance(p, bytes):
+            parts.append(p.decode("utf-8", errors="ignore"))
+    return "\n".join(parts)
+
+
+def extract_code(html: str) -> str | None:
+    """Look for 4-digit code matching pattern in email body."""
+    soup = BeautifulSoup(html, "html.parser")
+    text = soup.get_text(" ", strip=True)
+    match = re.search(r"Your Verification Code:\s*(\d{4})", text, re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def get_existing_email_ids(mail: imaplib.IMAP4) -> set[bytes]:
+    """Snapshot all currently existing UNSEEN email IDs."""
+    status, messages = mail.search(None, "UNSEEN")
+    if status == "OK" and messages and messages[0]:
+        return set(messages[0].split())
+    return set()
+
+
+def wait_for_verification_code(
+    mail: imaplib.IMAP4,
+    ignored_ids: set[bytes],
+    timeout: int = 120,
+    poll_interval: float = 0.5,
+) -> str:
+    """Polls INBOX, inspecting only newly arrived emails, newest first."""
+    print("[*] Waiting for new verification email via Proton Bridge...")
+    start = time.time()
+
+    while time.time() - start < timeout:
+        mail.noop()
+        status, messages = mail.search(None, "UNSEEN")
+        if status == "OK" and messages and messages[0]:
+            all_ids = messages[0].split()
+            new_ids = [eid for eid in reversed(all_ids) if eid not in ignored_ids]
+
+            for email_id in new_ids:
+                status, data = mail.fetch(email_id, "(RFC822)")
+                if status != "OK":
+                    continue
+
+                raw_email = None
+                for item in data:
+                    if isinstance(item, tuple) and len(item) >= 2 and isinstance(item[1], bytes):
+                        raw_email = item[1]
+                        break
+
+                if raw_email is None:
+                    continue
+
+                msg = email.message_from_bytes(raw_email)
+                code = extract_code(get_email_body(msg))
+                if code:
+                    mail.store(email_id, "+FLAGS", "\\Seen")
+                    print(f"[+] Retrieved code: {code}")
+                    return code
+
+        time.sleep(poll_interval)
+
+    raise TimeoutError("Timed out waiting for new verification code.")
+
+
+# =========================
+# MAIN FLOW
+# =========================
+def main():
+    print("[*] Connecting to Proton Bridge...")
+    mail = imaplib.IMAP4(HOST, PORT)
+    mail.login(USERNAME, PASSWORD)
+    mail.select("INBOX")
+
+    existing_ids = get_existing_email_ids(mail)
+
+    print("[*] Starting in 3 seconds. Keep the target window focused...")
+    time.sleep(3)
+
+    # 1. Full Name
+    copy_then_click_and_paste(990, 267, "John Smith")
+
+    # 2. Email
+    copy_then_click_and_paste(948, 353, "melnic.dragomir09@proton.me")
+
+    # 3. Phone number
+    copy_then_click_and_paste(997, 443, "7811152571")
+
+    # 4. Open Date of birth picker
+    click_at(984, 530)
+
+    # 5. Confirm Date of birth
+    click_at(1299, 662)
+
+    # 6. Password
+    copy_then_click_and_paste(991, 617, "Dragomir1?")
+
+    # 7. Sign up button
+    click_at(1094, 682)
+
+    # 8. Trigger email send
+    click_at(1311, 587)
+
+    time.sleep(2.0)
+    # 9. Press first minibox
+    click_at(995, 293)
+
+    # ----------------------------------------------------
+    # Verification Step
+    # ----------------------------------------------------
+    try:
+        code = wait_for_verification_code(mail, ignored_ids=existing_ids, timeout=120)
+    finally:
+        mail.logout()
+
+    # 1-second pause after receipt
+    time.sleep(1.0)
+
+    # Enter code via discrete single-key presses
+    print(f"[*] Typing digits into (995, 293): {code}")
+    enter_otp_digits(995, 293, code, delay=0.1)
+
+    # ----------------------------------------------------
+    # Remaining Form Steps (0.8s intervals)
+    # ----------------------------------------------------
+    click_at(1300, 594, delay=0.7)
+    click_at(1073, 429, delay=0.7)
+    click_at(842, 441, delay=0.7)
+    copy_then_click_and_paste(959, 632, "EES710", delay=0.7)
+    click_at(1096, 988, delay=0.7)
+
+    click_at(1064, 325, delay=1.0)
+    click_at(1320, 1001, delay=1.0)
+    click_at(1067, 550, delay=1.0)
+    click_at(954, 166, delay=1.0)
+    click_at(949, 166, delay=1.0)
+    click_at(1107, 559, delay=1.0)
+    click_at(1107, 559, delay=1.0)
+
+    # Password re-entry & final submit
+    copy_then_click_and_paste(1046, 851, "Dragomir1?", delay=1.0)
+    click_at(1080, 920, delay=1.0)
+    click_at(1317, 600, delay=1.0)
+    click_at(1176, 1003, delay=1.0)
+
+    print("[+] All steps completed.")
+
+
+if __name__ == "__main__":
+    start_total = time.perf_counter()
+
+    for i in range(1, NUM_LOOPS + 1):
+        print(f"\n==========================================")
+        print(f"       RUNNING ITERATION {i} OF {NUM_LOOPS}")
+        print(f"==========================================")
+        loop_start = time.perf_counter()
+
+        main()
+
+        loop_duration = time.perf_counter() - loop_start
+        print(f"[⏱️] Iteration {i} finished in {loop_duration:.2f} seconds.")
+
+    total_duration = time.perf_counter() - start_total
+    print(f"\n[🏁] Finished all {NUM_LOOPS} loops in {total_duration:.2f} seconds total.")
