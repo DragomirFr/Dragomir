@@ -11,12 +11,15 @@ import pyperclip
 # =========================
 # CONFIGURATION
 # =========================
-NUM_LOOPS = 49  # <-- Set how many times you want the script to run
+NUM_LOOPS = 14 # <-- Set how many times you want the script to run
 
-HOST = "127.0.0.1"
-PORT = 1143
-USERNAME = "@proton.me"
-PASSWORD = ""
+HOST = "imap.gmail.com"
+PORT = 993
+USERNAME = "dmelnic09@gmail.com"
+PASSWORD = "wdgbgirijidsbaqr"
+
+mail = imaplib.IMAP4_SSL(HOST, PORT)
+mail.login(USERNAME, PASSWORD)
 
 pyautogui.PAUSE = 0.4
 pyautogui.FAILSAFE = True
@@ -140,7 +143,7 @@ def wait_for_verification_code(
 # =========================
 def main():
     print("[*] Connecting to Proton Bridge...")
-    mail = imaplib.IMAP4(HOST, PORT)
+    mail = imaplib.IMAP4_SSL(HOST, PORT)
     mail.login(USERNAME, PASSWORD)
     mail.select("INBOX")
 
@@ -153,7 +156,7 @@ def main():
     copy_then_click_and_paste(990, 267, "John Smith")
 
     # 2. Email
-    copy_then_click_and_paste(948, 353, "melnic.dragomir09@proton.me")
+    copy_then_click_and_paste(948, 353, "dmelnic09@gmail.com")
 
     # 3. Phone number
     copy_then_click_and_paste(997, 443, "7811152571")
@@ -198,7 +201,7 @@ def main():
     click_at(1300, 594, delay=0.7)
     click_at(1073, 429, delay=0.7)
     click_at(842, 441, delay=0.7)
-    copy_then_click_and_paste(959, 632, "EES710", delay=0.7)
+    copy_then_click_and_paste(959, 632, "JAM538", delay=0.7)
     click_at(1096, 988, delay=0.7)
 
     click_at(1064, 325, delay=1.0)
