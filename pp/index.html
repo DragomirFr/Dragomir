@@ -10,7 +10,7 @@
 
     <title>Padel Tourney</title>
 
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -46,7 +46,7 @@
                 <h2>Set up matchday.</h2>
 
                 <p>
-                    Add six players and start your tournament.
+                    Add four teams of two players and start your tournament.
                 </p>
             </div>
 
@@ -60,7 +60,7 @@
                 <input
                     id="tournamentName"
                     type="text"
-                    value="6 Player Tournament"
+                    value="Padel 2v2 Tournament"
                     placeholder="Tournament name"
                 >
 
@@ -69,7 +69,7 @@
 
             <div class="players-grid" id="playersSetup">
 
-                <!-- JS creates players -->
+                <!-- JS creates teams -->
 
             </div>
 
@@ -123,8 +123,8 @@
         <section class="stats">
 
             <div class="stat-card">
-                <span>Players</span>
-                <strong id="playerCount">6</strong>
+                <span>Teams</span>
+                <strong id="playerCount">4</strong>
             </div>
 
             <div class="stat-card">
@@ -155,7 +155,7 @@
                     <h3>Matches</h3>
 
                     <p>
-                        Click a winner to award three points. Tap that winner again to clear the result.
+                        Click a winning team to award three points. Tap that team again to clear the result.
                     </p>
                 </div>
 
@@ -195,7 +195,7 @@
 
                         <tr>
                             <th>#</th>
-                            <th>Player</th>
+                            <th>Team</th>
                             <th>W</th>
                             <th>Pts</th>
                             <th>L</th>
@@ -275,7 +275,7 @@
                 </div>
 
                 <h3 id="modalPlayer1">
-                    Player 1
+                    Team 1
                 </h3>
 
                 <input
@@ -303,7 +303,7 @@
                 </div>
 
                 <h3 id="modalPlayer2">
-                    Player 2
+                    Team 2
                 </h3>
 
                 <input
@@ -333,7 +333,7 @@
 <div id="toast"></div>
 
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 
 </body>
 
