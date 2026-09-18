@@ -724,6 +724,28 @@ input:focus {
 }
 
 
+/* Flags a team that plays this match immediately after their previous one,
+   with no rest in between — see orderForSingleCourt in app.js. */
+.no-rest-tag {
+    flex-shrink: 0;
+
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+
+    color: var(--red);
+
+    background: rgba(255, 93, 108, 0.12);
+
+    border: 1px solid rgba(255, 93, 108, 0.3);
+
+    border-radius: 999px;
+
+    padding: 2px 8px;
+}
+
+
 /* TABLE */
 
 .table-wrapper {
