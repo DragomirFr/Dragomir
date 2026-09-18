@@ -20,6 +20,10 @@
 <header class="topbar">
 
     <div class="top-actions">
+        <button id="historyBtn" class="secondary">
+            History
+        </button>
+
         <button id="newTournamentBtn" class="secondary">
             New Tournament
         </button>
@@ -331,6 +335,30 @@
 
 
 <div id="toast"></div>
+
+<div id="historyOverlay" class="history-overlay hidden"></div>
+
+<aside id="historyPanel" class="history-panel hidden">
+
+    <div class="history-panel-header">
+
+        <div>
+            <span class="eyebrow">PAST TOURNAMENTS</span>
+            <h3>History</h3>
+        </div>
+
+        <button
+            id="closeHistory"
+            class="modal-close"
+        >
+            ×
+        </button>
+
+    </div>
+
+    <div id="historyList" class="history-list"></div>
+
+</aside>
 
 
 <script src="app.js?v=6"></script>
