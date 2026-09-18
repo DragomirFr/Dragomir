@@ -311,18 +311,14 @@ document
 // ==========================================
 
 async function createMatches() {
-    // Circle-method schedule: every team faces every other team exactly once.
-    // With 4 teams this produces 3 rounds of 2 fixtures (6 matches total).
-    const rows = [];
-    let matchNumber = 1;
+    // Circle-method pairing: every team faces every other team exactly once.
+    // With 4 teams this produces 6 fixtures across 3 team-disjoint pairings.
+    const pairs = [];
     const rotation = [...players];
 
     for (let round = 1; round < players.length; round++) {
         for (let i = 0; i < players.length / 2; i++) {
-            rows.push({
-                tournament_id: tournament.id,
-                round,
-                match_number: matchNumber++,
+            pairs.push({
                 player1_id: rotation[i].id,
                 player2_id: rotation[rotation.length - 1 - i].id
             });
@@ -330,6 +326,25 @@ async function createMatches() {
 
         rotation.splice(1, 0, rotation.pop());
     }
+
+
+    // All matches are played one after another on a single court, so reorder
+    // them to minimize how often the same team has to play twice in a row.
+    // With an even number of teams this can't always be avoided entirely —
+    // see orderForSingleCourt for why — but this keeps it to the unavoidable
+    // minimum instead of leaving it to chance.
+    const ordered =
+        orderForSingleCourt(pairs);
+
+
+    const rows =
+        ordered.map((pair, index) => ({
+            tournament_id: tournament.id,
+            round: index + 1,
+            match_number: index + 1,
+            player1_id: pair.player1_id,
+            player2_id: pair.player2_id
+        }));
 
 
     const {
@@ -341,6 +356,48 @@ async function createMatches() {
 
     if (error)
         throw error;
+}
+
+
+// Greedily orders matches so that, whenever possible, the next match shares
+// no team with the one before it. With n teams there are only n-1 fully
+// team-disjoint pairings, and any switch between pairings unavoidably repeats
+// one team — so for 4 teams the true minimum is exactly 2 back-to-backs
+// across the whole schedule. This produces that minimum by always preferring
+// a team-disjoint option, and only falling back to a repeat when every
+// remaining match shares a team with the last one played.
+function orderForSingleCourt(pairs) {
+
+    const remaining = [...pairs];
+
+    const order = [remaining.shift()];
+
+    while (remaining.length) {
+
+        const last =
+            order[order.length - 1];
+
+        const lastTeams = new Set([
+            last.player1_id,
+            last.player2_id
+        ]);
+
+        let nextIndex =
+            remaining.findIndex(
+                pair =>
+                    !lastTeams.has(pair.player1_id) &&
+                    !lastTeams.has(pair.player2_id)
+            );
+
+        if (nextIndex === -1)
+            nextIndex = 0;
+
+        order.push(
+            remaining.splice(nextIndex, 1)[0]
+        );
+    }
+
+    return order;
 }
 
 
@@ -549,6 +606,27 @@ function createMatchCard(match) {
         match.winner_id ===
         match.player2_id;
 
+
+    // Flag a team that just played the immediately preceding match on the
+    // schedule — they're walking straight into this one with no rest.
+    const previousMatch =
+        matches.find(
+            item =>
+                item.match_number ===
+                match.match_number - 1
+        );
+
+    const previousTeams =
+        previousMatch
+            ? [previousMatch.player1_id, previousMatch.player2_id]
+            : [];
+
+    const p1NoRest =
+        p1 && previousTeams.includes(match.player1_id);
+
+    const p2NoRest =
+        p2 && previousTeams.includes(match.player2_id);
+
     card.innerHTML = `
 
         <div class="match-header">
@@ -590,6 +668,12 @@ function createMatchCard(match) {
 
                 </span>
 
+                ${
+                    p1NoRest
+                        ? '<span class="no-rest-tag">No rest</span>'
+                        : ""
+                }
+
             </div>
 
         </div>
@@ -615,6 +699,12 @@ function createMatchCard(match) {
                     }
 
                 </span>
+
+                ${
+                    p2NoRest
+                        ? '<span class="no-rest-tag">No rest</span>'
+                        : ""
+                }
 
             </div>
 
