@@ -249,6 +249,36 @@ input:focus {
     align-items: center;
 }
 
+/* Each team card holds two stacked name inputs (Player A / Player B). */
+.team-input {
+    align-items: flex-start;
+
+    background: var(--panel-2);
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    padding: 14px;
+}
+
+.team-input .seed {
+    margin-top: 4px;
+}
+
+.team-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    flex: 1;
+    min-width: 0;
+}
+
+.team-fields input {
+    background: #0b0d11;
+}
+
 
 .seed {
     width: 30px;
@@ -979,6 +1009,11 @@ td {
     }
 
     .player-input input {
+        min-height: 46px;
+        font-size: 16px;
+    }
+
+    .team-fields input {
         min-height: 46px;
         font-size: 16px;
     }
