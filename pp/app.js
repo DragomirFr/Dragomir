@@ -9,10 +9,20 @@ const supabaseClient =
 
 
 let tournament = null;
-let players = [];
+let players = []; // each entry represents a TEAM (of 2 players)
 let matches = [];
 let liveChannel = null;
 let syncInFlight = false;
+
+// Default teams, pre-filled on the setup screen.
+const DEFAULT_TEAMS = [
+    ["Oskar", "Norris"],
+    ["Leo", "Eesah"],
+    ["Rayan", "Aurimas"],
+    ["Dragomir", "Alex"]
+];
+
+const TEAM_COUNT = DEFAULT_TEAMS.length;
 
 
 // ==========================================
@@ -42,13 +52,16 @@ function createPlayerInputs() {
 
     playersSetup.innerHTML = "";
 
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= TEAM_COUNT; i++) {
+
+        const defaults =
+            DEFAULT_TEAMS[i - 1] || ["", ""];
 
         const wrapper =
             document.createElement("div");
 
         wrapper.className =
-            "player-input";
+            "player-input team-input";
 
         wrapper.innerHTML = `
 
@@ -56,11 +69,23 @@ function createPlayerInputs() {
                 ${i}
             </div>
 
-            <input
-                id="player-${i}"
-                placeholder="Player ${i}"
-                maxlength="30"
-            >
+            <div class="team-fields">
+
+                <input
+                    id="team-${i}-p1"
+                    placeholder="Player A"
+                    maxlength="30"
+                    value="${defaults[0]}"
+                >
+
+                <input
+                    id="team-${i}-p2"
+                    placeholder="Player B"
+                    maxlength="30"
+                    value="${defaults[1]}"
+                >
+
+            </div>
 
         `;
 
@@ -88,6 +113,14 @@ function getInitials(name) {
         .join("")
         .slice(0, 2)
         .toUpperCase();
+}
+
+function getTeamInitials(p1, p2) {
+
+    const first = (p1 && p1[0]) || "";
+    const second = (p2 && p2[0]) || "";
+
+    return (first + second).toUpperCase();
 }
 
 
@@ -137,33 +170,55 @@ document
                 .getElementById("tournamentName")
                 .value
                 .trim() ||
-            "6 Player Tournament";
+            "Padel 2v2 Tournament";
 
 
-        const names = [];
+        const teams = [];
 
-        for (let i = 1; i <= 6; i++) {
+        for (let i = 1; i <= TEAM_COUNT; i++) {
 
-            const input =
+            const p1Input =
                 document.getElementById(
-                    `player-${i}`
+                    `team-${i}-p1`
                 );
 
-            const value =
-                input.value.trim();
+            const p2Input =
+                document.getElementById(
+                    `team-${i}-p2`
+                );
 
-            if (!value) {
+            const p1 =
+                p1Input.value.trim();
+
+            const p2 =
+                p2Input.value.trim();
+
+            if (!p1) {
 
                 showToast(
-                    `Enter a name for Player ${i}`
+                    `Enter Player A's name for Team ${i}`
                 );
 
-                input.focus();
+                p1Input.focus();
 
                 return;
             }
 
-            names.push(value);
+            if (!p2) {
+
+                showToast(
+                    `Enter Player B's name for Team ${i}`
+                );
+
+                p2Input.focus();
+
+                return;
+            }
+
+            teams.push({
+                name: `${p1} & ${p2}`,
+                avatar: getTeamInitials(p1, p2)
+            });
         }
 
 
@@ -192,19 +247,20 @@ document
                 tournamentData;
 
 
-            // Create players
+            // Create teams (stored in the "players" table — one row per team)
 
             const playerRows =
-                names.map((name, index) => ({
+                teams.map((team, index) => ({
                     tournament_id:
                         tournament.id,
 
-                    name,
+                    name:
+                        team.name,
 
                     seed: index + 1,
 
                     avatar:
-                        getInitials(name)
+                        team.avatar
                 }));
 
 
@@ -255,8 +311,8 @@ document
 // ==========================================
 
 async function createMatches() {
-    // Circle-method schedule: five rounds of three fixtures, with each player
-    // appearing once per round and facing every other player exactly once.
+    // Circle-method schedule: every team faces every other team exactly once.
+    // With 4 teams this produces 3 rounds of 2 fixtures (6 matches total).
     const rows = [];
     let matchNumber = 1;
     const rotation = [...players];
