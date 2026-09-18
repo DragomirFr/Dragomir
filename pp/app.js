@@ -44,6 +44,21 @@ const bracket =
 const leaderboard =
     document.getElementById("leaderboard");
 
+const historyBtn =
+    document.getElementById("historyBtn");
+
+const historyPanel =
+    document.getElementById("historyPanel");
+
+const historyOverlay =
+    document.getElementById("historyOverlay");
+
+const historyList =
+    document.getElementById("historyList");
+
+const closeHistoryBtn =
+    document.getElementById("closeHistory");
+
 // ==========================================
 // INITIAL SETUP
 // ==========================================
@@ -223,6 +238,20 @@ document
 
 
         try {
+
+            // Only one tournament may be "active" at a time. Archive
+            // whichever one currently holds that status (if any) so it
+            // still shows up in History, but no longer as the live one.
+            const {
+                error: archiveError
+            } = await supabaseClient
+                .from("tournaments")
+                .update({ status: "archived" })
+                .eq("status", "active");
+
+            if (archiveError)
+                throw archiveError;
+
 
             // Create tournament
 
@@ -1002,6 +1031,278 @@ function checkWinner() {
 
 
 // ==========================================
+// HISTORY
+// ==========================================
+
+function openHistoryPanel() {
+
+    historyPanel.classList.remove("hidden");
+    historyOverlay.classList.remove("hidden");
+
+    refreshHistoryList();
+}
+
+function closeHistoryPanel() {
+
+    historyPanel.classList.add("hidden");
+    historyOverlay.classList.add("hidden");
+}
+
+async function refreshHistoryList() {
+
+    if (historyPanel.classList.contains("hidden"))
+        return;
+
+    historyList.innerHTML =
+        `<p class="history-empty">Loading…</p>`;
+
+    try {
+
+        const {
+            data: tournamentsData,
+            error
+        } = await supabaseClient
+            .from("tournaments")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+        if (error)
+            throw error;
+
+
+        // Completed tournaments store their winner as a player id — fetch
+        // those names in one batched query rather than one per row.
+
+        const winnerIds =
+            [...new Set(
+                tournamentsData
+                    .map(item => item.winner_id)
+                    .filter(Boolean)
+            )];
+
+        let winnerNames = {};
+
+        if (winnerIds.length) {
+
+            const {
+                data: winners,
+                error: winnerError
+            } = await supabaseClient
+                .from("players")
+                .select("id, name")
+                .in("id", winnerIds);
+
+            if (winnerError)
+                throw winnerError;
+
+            winnerNames =
+                Object.fromEntries(
+                    winners.map(
+                        winner => [winner.id, winner.name]
+                    )
+                );
+        }
+
+        renderHistoryList(
+            tournamentsData || [],
+            winnerNames
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        historyList.innerHTML =
+            `<p class="history-empty">Could not load tournaments.</p>`;
+    }
+}
+
+function renderHistoryList(list, winnerNames) {
+
+    if (!list.length) {
+
+        historyList.innerHTML =
+            `<p class="history-empty">No tournaments yet.</p>`;
+
+        return;
+    }
+
+    historyList.innerHTML =
+        list.map(item => {
+
+            const isCurrent =
+                tournament && tournament.id === item.id;
+
+            const meta =
+                item.status === "completed" && winnerNames[item.winner_id]
+                    ? `Winner: ${winnerNames[item.winner_id]}`
+                    : new Date(item.created_at).toLocaleDateString(
+                        undefined,
+                        { day: "numeric", month: "short", year: "numeric" }
+                    );
+
+            return `
+
+                <div
+                    class="history-item ${isCurrent ? "current" : ""}"
+                    data-id="${item.id}"
+                >
+
+                    <div class="history-item-main">
+
+                        <span class="history-item-name">
+                            ${item.name}
+                        </span>
+
+                        <span class="history-status history-status--${item.status}">
+                            ${item.status}
+                        </span>
+
+                    </div>
+
+                    <div class="history-item-meta">
+                        ${meta}
+                    </div>
+
+                    <button
+                        class="history-delete"
+                        data-id="${item.id}"
+                        aria-label="Delete ${item.name}"
+                    >
+                        Delete
+                    </button>
+
+                </div>
+            `;
+
+        }).join("");
+
+
+    historyList
+        .querySelectorAll(".history-item")
+        .forEach(row => {
+
+            row.addEventListener("click", event => {
+
+                if (event.target.closest(".history-delete"))
+                    return;
+
+                openTournamentFromHistory(row.dataset.id);
+            });
+        });
+
+
+    historyList
+        .querySelectorAll(".history-delete")
+        .forEach(button => {
+
+            button.addEventListener("click", async event => {
+
+                event.stopPropagation();
+
+                await deleteTournamentFromHistory(button.dataset.id);
+            });
+        });
+}
+
+async function openTournamentFromHistory(id) {
+
+    try {
+
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .from("tournaments")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+        if (error)
+            throw error;
+
+        tournament = data;
+
+        await loadTournament();
+
+        showTournament();
+
+        closeHistoryPanel();
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            saveErrorMessage(error, "Could not open that tournament.")
+        );
+    }
+}
+
+async function deleteTournamentFromHistory(id) {
+
+    const confirmed =
+        confirm("Delete this tournament? This cannot be undone.");
+
+    if (!confirmed)
+        return;
+
+    const {
+        error
+    } = await supabaseClient
+        .from("tournaments")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+
+        console.error(error);
+
+        showToast(
+            saveErrorMessage(error, "Could not delete that tournament.")
+        );
+
+        return;
+    }
+
+    sendLiveUpdate(id, "deleted");
+
+
+    if (tournament && tournament.id === id) {
+
+        tournament = null;
+        players = [];
+        matches = [];
+
+        tournamentScreen.classList.add("hidden");
+        setupScreen.classList.remove("hidden");
+
+        createPlayerInputs();
+    }
+
+    showToast("Tournament deleted.");
+
+    refreshHistoryList();
+}
+
+
+historyBtn.addEventListener(
+    "click",
+    openHistoryPanel
+);
+
+closeHistoryBtn.addEventListener(
+    "click",
+    closeHistoryPanel
+);
+
+historyOverlay.addEventListener(
+    "click",
+    closeHistoryPanel
+);
+
+
+// ==========================================
 // RESET
 // ==========================================
 
@@ -1059,6 +1360,8 @@ document
             showToast(
                 "Tournament deleted."
             );
+
+            refreshHistoryList();
 
         }
     );
@@ -1151,16 +1454,19 @@ liveChannel = supabaseClient
             tournamentScreen.classList.add("hidden");
             setupScreen.classList.remove("hidden");
             createPlayerInputs();
+            refreshHistoryList();
             return;
         }
 
         syncLiveTournament(payload.tournamentId);
+        refreshHistoryList();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
         syncLiveTournament();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "tournaments" }, () => {
         syncLiveTournament();
+        refreshHistoryList();
     })
     .subscribe();
 
