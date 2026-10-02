@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#15131d;--panel:#201d2c;--line:#34304a;--text:#efeaff;--mute:#9a93b3;--accent:#ffb23e;--accent-ink:#2a1a00;
+:root{--ink:#15131d;--panel:#201d2c;--line:#34304a;--text:#efeaff;--mute:#9a93b3;--accent:#4fd8ff;--accent-ink:#00212b;
  --head:'Chakra Petch',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;box-sizing:border-box}
 *,*::before,*::after{box-sizing:inherit;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
@@ -314,7 +314,7 @@ $('#full').onclick=()=>{const d=document.documentElement;if(!d.requestFullscreen
 
 /* ---------- boot ---------- */
 (async function boot(){
-  $('#redir').textContent=REDIRECT;$('#cid').value=ls.get('deck_cid')||'';
+  $('#redir').textContent=REDIRECT;$('#cid').value=ls.get('deck_cid')||'dddf08435f3549dbaecc962b6350ec5c';
   $('#connect').onclick=login;
   const p=new URLSearchParams(location.search);
   if(p.get('code')){
