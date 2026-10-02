@@ -322,7 +322,7 @@ $('#full').onclick=()=>{const d=document.documentElement;if(!d.requestFullscreen
     history.replaceState({},'',REDIRECT);
   }
   if(ls.get('deck_ref')){$('#main').classList.remove('hidden');poll();
-    $('h1').addEventListener('dblclick',()=>{if(confirm('Disconnect Spotify?'))logout()})}
+    $('#main h1').addEventListener('dblclick',()=>{if(confirm('Disconnect Spotify?'))logout()})}
   else $('#setup').classList.remove('hidden');
 })();
 </script>
