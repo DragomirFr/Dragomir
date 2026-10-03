@@ -7,6 +7,10 @@
     {
       "source": "/pp/",
       "destination": "/pp/index.html"
+    },
+    {
+      "source": "/spotify",
+      "destination": "/spotify/index.html"
     }
   ]
 }
