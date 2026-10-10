@@ -685,7 +685,7 @@
       </div>
       <div class="form-group">
         <label class="form-label" for="fbDatabaseUrlInput">Firebase Realtime Database URL</label>
-        <input type="text" id="fbDatabaseUrlInput" class="form-input" placeholder="https://your-project-default-rtdb.firebaseio.com" spellcheck="false">
+        <input type="text" id="fbDatabaseUrlInput" class="form-input" value="https://admin-dragomir-default-rtdb.europe-west1.firebasedatabase.app" spellcheck="false">
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -956,15 +956,42 @@
 
   </div><!-- /admin-container -->
 
-  <!-- Load Realtime Sync Engine -->
+  <!-- Optional Realtime Sync Engine (Loaded if present, non-blocking) -->
   <script src="site-sync.js"></script>
 
   <script>
-    // --- ADMIN SECURITY & AUTHENTICATION ---
+    // --- CONSTANTS & DEFAULTS ---
     const ADMIN_SESSION_KEY = 'dragomir_admin_auth_session';
     const ADMIN_PASSWORD_KEY = 'dragomir_admin_password_hash';
-    const DEFAULT_PASS_HASH = 'dragomir'; // Simple fallback or custom stored password
+    const DEFAULT_PASS_HASH = 'dragomir';
+    const DEFAULT_FIREBASE_URL = 'https://admin-dragomir-default-rtdb.europe-west1.firebasedatabase.app';
 
+    let selectedAccentColor = '#7877c6';
+    let selectedAccentGlow = 'rgba(120, 119, 198, 0.12)';
+
+    // --- FIREBASE URL HELPERS ---
+    function getAdminFirebaseUrl() {
+      try {
+        const raw = localStorage.getItem('dragomir_firebase_config');
+        if (raw) {
+          const cfg = JSON.parse(raw);
+          if (cfg && cfg.databaseURL) return cfg.databaseURL.replace(/\/+$/, '');
+        }
+      } catch (e) {}
+      return DEFAULT_FIREBASE_URL;
+    }
+
+    function setAdminFirebaseUrl(url) {
+      const clean = url.trim().replace(/\/+$/, '');
+      const cfg = { databaseURL: clean };
+      localStorage.setItem('dragomir_firebase_config', JSON.stringify(cfg));
+      if (window.SiteSync && window.SiteSync.setFirebaseConfig) {
+        try { window.SiteSync.setFirebaseConfig(cfg); } catch (e) {}
+      }
+      return clean;
+    }
+
+    // --- AUTHENTICATION ---
     function isUserAuthenticated() {
       return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'authenticated';
     }
@@ -979,8 +1006,7 @@
         sessionStorage.setItem(ADMIN_SESSION_KEY, 'authenticated');
         document.getElementById('adminLockScreen').classList.add('hidden');
         document.getElementById('adminDashboard').classList.remove('hidden');
-        populateDashboardUI();
-        checkFirebaseConnection();
+        initDashboard();
       } else {
         errorMsg.textContent = 'Incorrect password. Try again.';
         document.getElementById('adminPasswordInput').value = '';
@@ -1005,11 +1031,8 @@
     }
 
     // --- DASHBOARD DATA POPULATION ---
-    let selectedAccentColor = '#7877c6';
-    let selectedAccentGlow = 'rgba(120, 119, 198, 0.12)';
-
-    function populateDashboardUI() {
-      const cfg = window.SiteSync ? window.SiteSync.getConfig() : {};
+    function populateDashboardUIWithData(cfg) {
+      if (!cfg) return;
 
       // Hero
       document.getElementById('heroTitleInput').value = cfg.hero?.title || 'Dragomir';
@@ -1049,6 +1072,30 @@
       updateLivePreviews();
     }
 
+    function populateDashboardUI() {
+      // 1. Try local storage first
+      try {
+        const raw = localStorage.getItem('dragomir_site_config');
+        if (raw) {
+          populateDashboardUIWithData(JSON.parse(raw));
+        }
+      } catch (e) {}
+
+      // 2. Fetch directly from Firebase Realtime Database
+      const dbUrl = getAdminFirebaseUrl();
+      if (dbUrl) {
+        fetch(`${dbUrl}/siteConfig.json`)
+          .then(res => res.json())
+          .then(data => {
+            if (data) {
+              populateDashboardUIWithData(data);
+              localStorage.setItem('dragomir_site_config', JSON.stringify(data));
+            }
+          })
+          .catch(err => console.warn('Firebase read warning:', err));
+      }
+    }
+
     function toggleMaintenanceInput() {
       const isChecked = document.getElementById('maintenanceModeToggle').checked;
       document.getElementById('maintenanceMsgGroup').classList.toggle('hidden', !isChecked);
@@ -1072,7 +1119,6 @@
     }
 
     function updateLivePreviews() {
-      // Banner Preview
       const enabled = document.getElementById('bannerEnabledToggle').checked;
       const text = document.getElementById('bannerTextInput').value.trim() || 'Banner preview message';
       const type = document.getElementById('bannerTypeSelect').value;
@@ -1102,60 +1148,76 @@
     }
 
     // --- FIREBASE SYNC MANAGEMENT ---
-    function checkFirebaseConnection() {
+    async function checkFirebaseConnection() {
       const dot = document.getElementById('syncStatusDot');
       const title = document.getElementById('syncStatusTitle');
       const desc = document.getElementById('syncStatusDesc');
-      const fbConfig = window.SiteSync?.getFirebaseConfig();
+      const dbUrl = getAdminFirebaseUrl();
 
-      if (fbConfig && fbConfig.databaseURL) {
+      if (dbUrl) {
         dot.className = 'status-pulse-dot online';
         title.textContent = 'Realtime Cloud Sync Active';
-        desc.textContent = `Connected to ${fbConfig.databaseURL}. Changes broadcast to all visitors in milliseconds!`;
-      } else {
-        dot.className = 'status-pulse-dot warning';
-        title.textContent = 'Local Mode (Cloud Sync Not Connected)';
-        desc.textContent = 'Click "Configure Firebase" to enable instant live sync for all online visitors.';
+        desc.textContent = `Connected to ${dbUrl}. Changes broadcast to all visitors in milliseconds!`;
+
+        // Test connectivity
+        try {
+          const testRes = await fetch(`${dbUrl}/siteConfig.json`);
+          if (testRes.ok) {
+            dot.className = 'status-pulse-dot online';
+            title.textContent = 'Realtime Cloud Sync Active';
+            return;
+          }
+        } catch (e) {}
       }
+
+      dot.className = 'status-pulse-dot warning';
+      title.textContent = 'Local Mode (Cloud Sync Not Connected)';
+      desc.textContent = 'Click "Configure Firebase" to enable instant live sync for all online visitors.';
     }
 
     function toggleFirebaseConfigCard() {
       const card = document.getElementById('firebaseConfigCard');
       card.classList.toggle('hidden');
       if (!card.classList.contains('hidden')) {
-        const fb = window.SiteSync?.getFirebaseConfig() || {};
-        document.getElementById('fbDatabaseUrlInput').value = fb.databaseURL || '';
-        document.getElementById('fbApiKeyInput').value = fb.apiKey || '';
-        document.getElementById('fbProjectIdInput').value = fb.projectId || '';
+        document.getElementById('fbDatabaseUrlInput').value = getAdminFirebaseUrl();
       }
     }
 
     async function saveFirebaseCredentials() {
       let dbUrl = document.getElementById('fbDatabaseUrlInput').value.trim();
-      const apiKey = document.getElementById('fbApiKeyInput').value.trim();
-      const projectId = document.getElementById('fbProjectIdInput').value.trim();
-
       if (!dbUrl) {
         alert('Please enter your Firebase Realtime Database URL.');
         return;
       }
 
-      // Ensure proper protocol
       if (!dbUrl.startsWith('http')) {
         dbUrl = 'https://' + dbUrl;
       }
+      dbUrl = dbUrl.replace(/\/+$/, '');
 
-      const fbConfig = {
-        databaseURL: dbUrl,
-        apiKey: apiKey || undefined,
-        projectId: projectId || undefined
-      };
+      // Direct REST test to verify connectivity
+      try {
+        const testRes = await fetch(`${dbUrl}/siteConfig.json`);
+        if (testRes.ok) {
+          const remoteData = await testRes.json();
+          setAdminFirebaseUrl(dbUrl);
+          checkFirebaseConnection();
+          toggleFirebaseConfigCard();
+          showToast('✓ Firebase connected! Realtime sync is active.');
+          if (remoteData) {
+            populateDashboardUIWithData(remoteData);
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn('Direct test warning:', err);
+      }
 
-      window.SiteSync.setFirebaseConfig(fbConfig);
-      await window.SiteSync.initFirebaseSync();
+      // If test has CORS warning or initial write needed, save anyway
+      setAdminFirebaseUrl(dbUrl);
       checkFirebaseConnection();
       toggleFirebaseConfigCard();
-      showToast('Firebase connected! Realtime sync is active.');
+      showToast('Firebase URL saved.');
     }
 
     // --- PUSH LIVE CHANGES TO EVERYONE ---
@@ -1195,24 +1257,54 @@
         theme: {
           accentColor: selectedAccentColor,
           accentGlow: selectedAccentGlow
-        }
+        },
+        updatedAt: Date.now()
       };
 
-      const result = await window.SiteSync.pushLiveUpdate(newConfig);
+      // 1. Save locally
+      localStorage.setItem('dragomir_site_config', JSON.stringify(newConfig));
+
+      // 2. Direct REST write to Firebase
+      const dbUrl = getAdminFirebaseUrl();
+      let broadcastSuccess = false;
+
+      if (dbUrl) {
+        try {
+          const res = await fetch(`${dbUrl}/siteConfig.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newConfig)
+          });
+          if (res.ok) {
+            broadcastSuccess = true;
+          }
+        } catch (e) {
+          console.error('REST push error:', e);
+        }
+      }
+
+      // 3. Also notify SiteSync if loaded
+      if (window.SiteSync && window.SiteSync.applyLiveChanges) {
+        try { window.SiteSync.applyLiveChanges(newConfig); } catch (e) {}
+      }
 
       btn.style.opacity = '1';
       btn.style.pointerEvents = 'auto';
 
-      if (result.method === 'firebase_rtdb') {
+      if (broadcastSuccess) {
         showToast('⚡ Live changes broadcasted to all visitors!');
       } else {
-        showToast('Saved locally. Connect Firebase above to broadcast to all visitors!');
+        showToast('Saved locally. Realtime push failed, please verify network.');
       }
     }
 
     // --- EXPORT TO STATIC FILE ---
     async function exportConfigToFile() {
-      const cfg = window.SiteSync ? window.SiteSync.getConfig() : {};
+      let cfg = {};
+      try {
+        cfg = JSON.parse(localStorage.getItem('dragomir_site_config') || '{}');
+      } catch (e) {}
+
       const jsonStr = JSON.stringify(cfg, null, 2);
 
       if ('showSaveFilePicker' in window) {
@@ -1256,13 +1348,17 @@
       }, 3000);
     }
 
+    function initDashboard() {
+      populateDashboardUI();
+      checkFirebaseConnection();
+    }
+
     // --- INIT ---
     window.addEventListener('DOMContentLoaded', () => {
       if (isUserAuthenticated()) {
         document.getElementById('adminLockScreen').classList.add('hidden');
         document.getElementById('adminDashboard').classList.remove('hidden');
-        populateDashboardUI();
-        checkFirebaseConnection();
+        initDashboard();
       }
     });
   </script>
