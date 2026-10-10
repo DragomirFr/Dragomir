@@ -11,6 +11,10 @@
     {
       "source": "/spotify",
       "destination": "/spotify/index.html"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
     }
   ]
 }
