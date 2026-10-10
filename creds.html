@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #09090b;
+      --card-bg: #141417;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --input-bg: #1a1a1f;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --text: #f4f4f5;
+      --text-muted: #94949e;
+      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 2.25rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      position: relative;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .shield-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      color: #60a5fa;
+    }
+
+    .shield-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.35rem;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+
+    .badge-secure {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.725rem;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+
+    /* Form & Input styles */
+    .field-group {
+      margin-bottom: 1.25rem;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    /* Vault Content View */
+    .secret-card {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.15rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+
+    .secret-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.775rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .secret-value-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .secret-val {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: #ffffff;
+      word-break: break-all;
+    }
+
+    .secret-val.masked {
+      font-family: var(--font-sans);
+      letter-spacing: 0.25em;
+      color: var(--text-muted);
+    }
+
+    .action-icons {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .icon-btn.copied {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .timer-bar {
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--card-border);
+      padding-top: 1.25rem;
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+      display: none;
+      text-align: center;
+      animation: shake 0.3s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1f2937;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 0.7rem 1.4rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .text-link {
+      background: none;
+      border: none;
+      color: #60a5fa;
+      font-size: 0.825rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+
+    .text-link:hover {
+      color: #93c5fd;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- VIEW 1: UNLOCK SCREEN (DEFAULT) -->
+    <div id="unlockView">
+      <div class="header">
+        <div class="shield-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        </div>
+        <h1>Personal Vault</h1>
+        <p class="subtitle">Protected with AES-256-GCM hardware encryption</p>
+        <div class="badge-secure">
+          <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+          Client-Side Zero-Knowledge
+        </div>
+      </div>
+
+      <form id="unlockForm" onsubmit="handleUnlock(event)">
+        <div class="field-group">
+          <label for="unlockPassword">Master Password</label>
+          <input type="password" id="unlockPassword" placeholder="Enter your vault password" autocomplete="current-password" autofocus required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="unlockBtn">
+          <span>Unlock Details</span>
+        </button>
+        <div class="error-msg" id="unlockError">Incorrect password. Please try again.</div>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <button type="button" class="text-link" onclick="switchToSetup()">Change details or reset vault</button>
+      </div>
+    </div>
+
+    <!-- VIEW 2: VAULT CONTENT (SHOWN WHEN UNLOCKED) -->
+    <div id="contentView" class="hidden">
+      <div class="header" style="margin-bottom: 1.5rem;">
+        <div class="shield-icon" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25); color: #34d399;">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        </div>
+        <h1>Vault Unlocked</h1>
+        <p class="subtitle">Click the copy icon to copy to clipboard</p>
+      </div>
+
+      <!-- Driving license Card -->
+      <div class="secret-card">
+        <div class="secret-label">
+          <span>Driving license Number</span>
+        </div>
+        <div class="secret-value-row">
+          <div class="secret-val" id="licenseDisplay">••••••••••••••••</div>
+          <div class="action-icons">
+            <button type="button" class="icon-btn" onclick="toggleMask('license')" title="Show / Hide">
+              <svg id="eyeIcon-license" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn" id="copyBtn-license" onclick="copySecret('license')" title="Copy to clipboard">
+              <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reference Code Card -->
+      <div class="secret-card">
+        <div class="secret-label">
+          <span>Reference Code</span>
+        </div>
+        <div class="secret-value-row">
+          <div class="secret-val" id="refDisplay">••••••••••</div>
+          <div class="action-icons">
+            <button type="button" class="icon-btn" onclick="toggleMask('ref')" title="Show / Hide">
+              <svg id="eyeIcon-ref" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn" id="copyBtn-ref" onclick="copySecret('ref')" title="Copy to clipboard">
+              <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lock & Session bar -->
+      <div class="timer-bar">
+        <span>Auto-lock in: <strong id="timerDisplay">02:00</strong></span>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" style="width: auto; padding: 0.5rem 0.85rem; font-size: 0.8rem;" onclick="exportEncryptedHtml()" title="Download a standalone .html file containing your encrypted vault">
+            Export File
+          </button>
+          <button type="button" class="btn btn-secondary" style="width: auto; padding: 0.5rem 0.85rem; font-size: 0.8rem;" onclick="lockVault()">
+            Lock Now
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem; text-align: center;">
+        <button type="button" class="text-link" onclick="switchToSetup(true)">Edit Details / Password</button>
+      </div>
+    </div>
+
+    <!-- VIEW 3: SETUP / EDIT VAULT -->
+    <div id="setupView" class="hidden">
+      <div class="header">
+        <div class="shield-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+          </svg>
+        </div>
+        <h1 id="setupTitle">Setup Your Vault</h1>
+        <p class="subtitle">Your information is encrypted with AES-256 before leaving your browser.</p>
+      </div>
+
+      <form id="setupForm" onsubmit="handleSaveVault(event)">
+        <div class="field-group">
+          <label for="setuplicense">Driving license Number</label>
+          <input type="text" id="setuplicense" placeholder="e.g. SMITH905204SM9IJ" required>
+        </div>
+
+        <div class="field-group">
+          <label for="setupRef">Reference Code</label>
+          <input type="text" id="setupRef" placeholder="e.g. 784-921-A" required>
+        </div>
+
+        <div class="field-group">
+          <label for="setupPassword">Master Password</label>
+          <input type="password" id="setupPassword" placeholder="Choose a strong master password" required minlength="4">
+        </div>
+
+        <div class="field-group">
+          <label for="setupConfirmPassword">Confirm Master Password</label>
+          <input type="password" id="setupConfirmPassword" placeholder="Confirm your password" required minlength="4">
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="saveVaultBtn">
+          Encrypt &amp; Save Vault
+        </button>
+        <button type="button" class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="cancelSetup()">
+          Cancel
+        </button>
+        <div class="error-msg" id="setupError"></div>
+      </form>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast">
+    <svg style="width:16px;height:16px;color:#34d399" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+    </svg>
+    <span id="toastMsg">Copied to clipboard</span>
+  </div>
+
+  <!-- EMBEDDED ENCRYPTED DATA (UPDATED AUTOMATICALLY WHEN YOU SAVE) -->
+  <script id="embeddedVault" type="application/json"></script>
+
+  <script>
+    // --- STATE MANAGEMENT ---
+    let decryptedData = null;
+    let isMasked = { license: true, ref: true };
+    let lockTimer = null;
+    let timeLeft = 120; // 2 minutes
+    let lockoutCountdownTimer = null;
+
+    // --- LOCKOUT SYSTEM (24-hour ban after 5 failed attempts) ---
+    const MAX_ATTEMPTS = 5;
+    const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const LOCKOUT_STORAGE_KEY = "vault_lockout";
+
+    function getLockoutState() {
+      try {
+        const raw = localStorage.getItem(LOCKOUT_STORAGE_KEY);
+        if (!raw) return { attempts: 0, lockedUntil: null };
+        return JSON.parse(raw);
+      } catch (e) {
+        return { attempts: 0, lockedUntil: null };
+      }
+    }
+
+    function saveLockoutState(state) {
+      localStorage.setItem(LOCKOUT_STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function clearLockout() {
+      localStorage.removeItem(LOCKOUT_STORAGE_KEY);
+    }
+
+    function isLockedOut() {
+      const state = getLockoutState();
+      if (state.lockedUntil && Date.now() < state.lockedUntil) {
+        return true;
+      }
+      // If lockout expired, reset
+      if (state.lockedUntil && Date.now() >= state.lockedUntil) {
+        clearLockout();
+      }
+      return false;
+    }
+
+    function getRemainingLockoutMs() {
+      const state = getLockoutState();
+      if (!state.lockedUntil) return 0;
+      return Math.max(0, state.lockedUntil - Date.now());
+    }
+
+    function recordFailedAttempt() {
+      const state = getLockoutState();
+      state.attempts = (state.attempts || 0) + 1;
+      if (state.attempts >= MAX_ATTEMPTS) {
+        state.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+      }
+      saveLockoutState(state);
+      return state;
+    }
+
+    function formatLockoutTime(ms) {
+      const totalSec = Math.ceil(ms / 1000);
+      const hrs = Math.floor(totalSec / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      return `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    }
+
+    function showLockoutScreen() {
+      const errorEl = document.getElementById("unlockError");
+      const btn = document.getElementById("unlockBtn");
+      const passwordInput = document.getElementById("unlockPassword");
+
+      btn.disabled = true;
+      passwordInput.disabled = true;
+
+      clearInterval(lockoutCountdownTimer);
+      lockoutCountdownTimer = setInterval(() => {
+        const remaining = getRemainingLockoutMs();
+        if (remaining <= 0) {
+          clearInterval(lockoutCountdownTimer);
+          clearLockout();
+          btn.disabled = false;
+          passwordInput.disabled = false;
+          errorEl.textContent = "Lockout expired. You may try again.";
+          errorEl.style.display = "block";
+          return;
+        }
+        const state = getLockoutState();
+        errorEl.innerHTML = `<strong>🔒 VAULT LOCKED</strong><br>Too many failed attempts (${MAX_ATTEMPTS}/${MAX_ATTEMPTS}).<br>Try again in: <strong>${formatLockoutTime(remaining)}</strong>`;
+        errorEl.style.display = "block";
+      }, 1000);
+
+      // Fire immediately
+      const remaining = getRemainingLockoutMs();
+      const state = getLockoutState();
+      errorEl.innerHTML = `<strong>🔒 VAULT LOCKED</strong><br>Too many failed attempts (${MAX_ATTEMPTS}/${MAX_ATTEMPTS}).<br>Try again in: <strong>${formatLockoutTime(remaining)}</strong>`;
+      errorEl.style.display = "block";
+    }
+
+    // --- CRYPTO FUNCTIONS (Web Crypto API: PBKDF2 + AES-GCM 256) ---
+    async function deriveKey(password, salt) {
+      const enc = new TextEncoder();
+      const keyMaterial = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+      );
+      return window.crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: salt,
+          iterations: 250000,
+          hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptData(dataObject, password) {
+      const salt = window.crypto.getRandomValues(new Uint8Array(16));
+      const iv = window.crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(password, salt);
+      const encoded = new TextEncoder().encode(JSON.stringify(dataObject));
+
+      const ciphertext = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        encoded
+      );
+
+      return {
+        salt: Array.from(salt),
+        iv: Array.from(iv),
+        ciphertext: Array.from(new Uint8Array(ciphertext))
+      };
+    }
+
+    async function decryptData(encryptedPayload, password) {
+      const salt = new Uint8Array(encryptedPayload.salt);
+      const iv = new Uint8Array(encryptedPayload.iv);
+      const ciphertext = new Uint8Array(encryptedPayload.ciphertext);
+      const key = await deriveKey(password, salt);
+
+      const decrypted = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        ciphertext
+      );
+
+      const decoded = new TextDecoder().decode(decrypted);
+      return JSON.parse(decoded);
+    }
+
+    // --- VAULT STORAGE HELPERS ---
+    function getStoredVault() {
+      // 1. Check embedded script tag first
+      const embedded = document.getElementById("embeddedVault").textContent.trim();
+      if (embedded) {
+        try { return JSON.parse(embedded); } catch (e) {}
+      }
+      // 2. Check localStorage as backup
+      const local = localStorage.getItem("secure_vault_data");
+      if (local) {
+        try { return JSON.parse(local); } catch (e) {}
+      }
+      return null;
+    }
+
+    function saveVaultToStorage(payload) {
+      localStorage.setItem("secure_vault_data", JSON.stringify(payload));
+      document.getElementById("embeddedVault").textContent = JSON.stringify(payload);
+    }
+
+    // --- UI NAVIGATION ---
+    function showView(viewId) {
+      document.getElementById("unlockView").classList.add("hidden");
+      document.getElementById("contentView").classList.add("hidden");
+      document.getElementById("setupView").classList.add("hidden");
+      document.getElementById(viewId).classList.remove("hidden");
+    }
+
+    function switchToSetup(isEditing = false) {
+      document.getElementById("setupTitle").textContent = isEditing ? "Edit Vault Details" : "Setup Your Vault";
+      if (isEditing && decryptedData) {
+        document.getElementById("setuplicense").value = decryptedData.license || "";
+        document.getElementById("setupRef").value = decryptedData.ref || "";
+      } else {
+        document.getElementById("setupForm").reset();
+      }
+      document.getElementById("setupError").style.display = "none";
+      showView("setupView");
+    }
+
+    function cancelSetup() {
+      if (decryptedData) {
+        showView("contentView");
+      } else if (getStoredVault()) {
+        showView("unlockView");
+      } else {
+        showToast("Please setup a password and details first");
+      }
+    }
+
+    // --- UNLOCK ACTION ---
+    async function handleUnlock(e) {
+      e.preventDefault();
+      const password = document.getElementById("unlockPassword").value;
+      const errorEl = document.getElementById("unlockError");
+      const vault = getStoredVault();
+
+      // Check if locked out
+      if (isLockedOut()) {
+        showLockoutScreen();
+        return;
+      }
+
+      if (!vault) {
+        errorEl.textContent = "No vault found. Please set up your details first.";
+        errorEl.style.display = "block";
+        setTimeout(() => switchToSetup(false), 1200);
+        return;
+      }
+
+      const btn = document.getElementById("unlockBtn");
+      btn.disabled = true;
+      btn.innerHTML = "<span>Decrypting...</span>";
+      errorEl.style.display = "none";
+
+      try {
+        decryptedData = await decryptData(vault, password);
+        // Success — clear all failed attempts
+        clearLockout();
+        document.getElementById("unlockForm").reset();
+        openVault();
+      } catch (err) {
+        // Rate-limiting delay to mitigate fast brute-force attempts
+        await new Promise(r => setTimeout(r, 800));
+
+        const state = recordFailedAttempt();
+        const remaining = MAX_ATTEMPTS - state.attempts;
+
+        if (state.lockedUntil) {
+          // Just triggered the 24-hour lockout
+          showLockoutScreen();
+        } else {
+          errorEl.textContent = `Incorrect password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before 24-hour lockout.`;
+          errorEl.style.display = "block";
+        }
+      } finally {
+        if (!isLockedOut()) {
+          btn.disabled = false;
+        }
+        btn.innerHTML = "<span>Unlock Details</span>";
+      }
+    }
+
+    function openVault() {
+      isMasked = { license: true, ref: true };
+      renderMaskedValues();
+      showView("contentView");
+      startLockTimer();
+      showToast("Vault unlocked successfully");
+    }
+
+    // --- MASK / UNMASK TOGGLES ---
+    function renderMaskedValues() {
+      const licenseEl = document.getElementById("licenseDisplay");
+      const refEl = document.getElementById("refDisplay");
+
+      if (isMasked.license) {
+        licenseEl.textContent = "••••••••••••••••";
+        licenseEl.classList.add("masked");
+      } else {
+        licenseEl.textContent = decryptedData.license;
+        licenseEl.classList.remove("masked");
+      }
+
+      if (isMasked.ref) {
+        refEl.textContent = "••••••••••";
+        refEl.classList.add("masked");
+      } else {
+        refEl.textContent = decryptedData.ref;
+        refEl.classList.remove("masked");
+      }
+    }
+
+    function toggleMask(field) {
+      isMasked[field] = !isMasked[field];
+      renderMaskedValues();
+      resetLockTimer();
+    }
+
+    // --- 1-CLICK COPY ---
+    async function copySecret(field) {
+      if (!decryptedData) return;
+      const val = field === 'license' ? decryptedData.license : decryptedData.ref;
+      const label = field === 'license' ? 'Driving license number' : 'Reference code';
+
+      try {
+        await navigator.clipboard.writeText(val);
+        const btn = document.getElementById(`copyBtn-${field}`);
+        btn.classList.add("copied");
+        showToast(`${label} copied!`);
+        setTimeout(() => btn.classList.remove("copied"), 1800);
+      } catch (err) {
+        // Fallback for older browsers / file:// protocol permissions
+        const temp = document.createElement("textarea");
+        temp.value = val;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+        showToast(`${label} copied!`);
+      }
+      resetLockTimer();
+    }
+
+    // --- LOCK / AUTO-LOCK ---
+    function lockVault() {
+      // Overwrite and clear sensitive plaintext in memory
+      decryptedData = null;
+      clearInterval(lockTimer);
+      document.getElementById("licenseDisplay").textContent = "••••••••••••••••";
+      document.getElementById("refDisplay").textContent = "••••••••••";
+      showView("unlockView");
+      document.getElementById("unlockPassword").value = "";
+      showToast("Vault locked");
+    }
+
+    function startLockTimer() {
+      clearInterval(lockTimer);
+      timeLeft = 120;
+      updateTimerDisplay();
+      lockTimer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          lockVault();
+        }
+      }, 1000);
+    }
+
+    function resetLockTimer() {
+      timeLeft = 120;
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const min = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+      const sec = (timeLeft % 60).toString().padStart(2, '0');
+      document.getElementById("timerDisplay").textContent = `${min}:${sec}`;
+    }
+
+    // Reset lock timer on user activity inside the unlocked vault
+    window.addEventListener("click", () => { if (decryptedData) resetLockTimer(); });
+    window.addEventListener("keydown", () => { if (decryptedData) resetLockTimer(); });
+
+    // --- SAVE / EDIT VAULT ---
+    async function handleSaveVault(e) {
+      e.preventDefault();
+      const license = document.getElementById("setuplicense").value.trim();
+      const ref = document.getElementById("setupRef").value.trim();
+      const password = document.getElementById("setupPassword").value;
+      const confirm = document.getElementById("setupConfirmPassword").value;
+      const errorEl = document.getElementById("setupError");
+
+      if (password !== confirm) {
+        errorEl.textContent = "Passwords do not match.";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      const saveBtn = document.getElementById("saveVaultBtn");
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Encrypting...";
+
+      try {
+        const payload = await encryptData({ license, ref }, password);
+        saveVaultToStorage(payload);
+
+        decryptedData = { license, ref };
+        showToast("Vault encrypted & saved!");
+        openVault();
+      } catch (err) {
+        errorEl.textContent = "Encryption error: " + err.message;
+        errorEl.style.display = "block";
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Encrypt & Save Vault";
+      }
+    }
+
+    // --- EXPORT PORTABLE ENCRYPTED HTML ---
+    function exportEncryptedHtml() {
+      const vault = getStoredVault();
+      if (!vault) {
+        showToast("No encrypted vault data to export");
+        return;
+      }
+      
+      let htmlContent = document.documentElement.outerHTML;
+      const vaultJson = JSON.stringify(vault);
+      htmlContent = htmlContent.replace(
+        new RegExp('<script id="embeddedVault"[^>]*>[\\s\\S]*?<\\/script>'),
+        '<script id="embeddedVault" type="application/json">' + vaultJson + '<' + '/script>'
+      );
+
+      const blob = new Blob(["<!DOCTYPE html>\n<html lang=\"en\">\n" + htmlContent + "\n</html>"], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "my-secure-vault.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Encrypted file exported!");
+    }
+
+    // --- TOAST NOTIFICATIONS ---
+    let toastTimeout = null;
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastMsg").textContent = msg;
+      toast.classList.add("show");
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    // --- INITIALIZATION ---
+    window.addEventListener("DOMContentLoaded", () => {
+      const vault = getStoredVault();
+      if (!vault) {
+        // First run: go straight to setup
+        switchToSetup(false);
+      } else {
+        showView("unlockView");
+        // If currently locked out, immediately show lockout screen
+        if (isLockedOut()) {
+          showLockoutScreen();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
