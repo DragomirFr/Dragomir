@@ -6,7 +6,7 @@
   <title>Dragomir</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">   
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after {
@@ -71,9 +71,42 @@
       color: var(--text-muted);
     }
 
+    .footer-group {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .footer-buttons {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .footer-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .footer-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.18);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
     .social-links {
       display: flex;
       gap: 1.5rem;
+      align-items: center;
     }
 
     .social-link {
@@ -89,8 +122,12 @@
     @media (max-width: 640px) {
       footer {
         flex-direction: column;
-        gap: 1rem;
+        gap: 1.25rem;
         text-align: center;
+      }
+      .footer-group {
+        flex-direction: column;
+        gap: 1rem;
       }
     }
   </style>
@@ -103,10 +140,16 @@
 
   <footer>
     <span>&copy; 2026 Dragomir. All rights reserved.</span>
-    <div class="social-links">
-  <a href="https://discord.com/users/1081642527968460831" target="_blank" rel="noopener noreferrer" class="social-link">Discord</a>
-  <a href="https://github.com/DragomirFr" target="_blank" rel="noopener noreferrer" class="social-link">GitHub</a>
-</div>
+    <div class="footer-group">
+      <div class="footer-buttons">
+        <a href="clock.html" class="footer-btn">Clock</a>
+        <a href="vault.html" class="footer-btn">Vault</a>
+      </div>
+      <div class="social-links">
+        <a href="#" class="social-link">Discord</a>
+        <a href="#" class="social-link">GitHub</a>
+      </div>
+    </div>
   </footer>
 
 </body>
