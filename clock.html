@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #09090b;
+      --text: #ffffff;
+      --text-muted: #71717a;
+      --text-subtle: #3f3f46;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(ellipse 70% 45% at 50% 50%, rgba(120, 119, 198, 0.08), transparent 70%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.015), transparent 60%);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .clock-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+    }
+
+    
+
+    /* Main Time Display */
+    .time-wrapper {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      line-height: 0.95;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+    }
+
+    .time-main {
+      font-size: clamp(5.5rem, 19vw, 14.5rem);
+      font-weight: 800;
+      letter-spacing: -0.06em;
+      color: #ffffff;
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .time-colon {
+      opacity: 0.4;
+      font-weight: 700;
+      margin: 0 0.03em;
+      vertical-align: 0.05em;
+    }
+
+    .time-seconds {
+      font-size: clamp(2.2rem, 7vw, 5.2rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: #52525b;
+      margin-left: clamp(0.75rem, 2vw, 1.5rem);
+      min-width: 1.8ch;
+      text-align: left;
+    }
+
+    .ampm {
+      font-size: clamp(1.2rem, 3.2vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #71717a;
+      margin-left: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    /* Date display */
+    .date-wrapper {
+      margin-top: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: clamp(1rem, 2.4vw, 1.35rem);
+      font-weight: 600;
+      color: #a1a1aa;
+      letter-spacing: -0.01em;
+    }
+
+    .date-dot {
+      color: #3f3f46;
+      font-size: 0.8em;
+    }
+
+    /* Floating subtle controls bar */
+    .controls {
+      position: fixed;
+      bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(18, 18, 22, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.6rem;
+      border-radius: 9999px;
+      opacity: 0.25;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease;
+    }
+
+    body:hover .controls {
+      opacity: 0.85;
+    }
+
+    .controls:hover {
+      opacity: 1 !important;
+      transform: translateY(-2px);
+    }
+
+    .ctrl-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.35rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .ctrl-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .ctrl-btn.active {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .separator {
+      width: 1px;
+      height: 14px;
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  
+
+    <div class="time-wrapper">
+      <span class="time-main" id="timeMain">00<span class="time-colon">:</span>00</span>
+      <span class="time-seconds" id="timeSec">00</span>
+      <span class="ampm" id="timeAmPm" style="display: none;"></span>
+    </div>
+
+    <div class="date-wrapper">
+      <span id="dateDay">Saturday</span>
+      <span class="date-dot">&bull;</span>
+      <span id="dateFull">10 October 2026</span>
+    </div>
+  </div>
+
+  <!-- Subtle bottom controls -->
+  <div class="controls">
+    <button class="ctrl-btn active" id="btn24" onclick="setFormat(24)">24H</button>
+    <button class="ctrl-btn" id="btn12" onclick="setFormat(12)">12H</button>
+    <span class="separator"></span>
+    <button class="ctrl-btn active" id="btnSec" onclick="toggleSeconds()">SEC</button>
+    <span class="separator"></span>
+    <button class="ctrl-btn" id="btnFullscreen" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+  </div>
+
+  <script>
+    let is24Hour = true;
+    let showSec = true;
+
+    // Detect user timezone
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) {
+        document.getElementById('tzLabel').textContent = tz.replace('_', ' ');
+      }
+    } catch (e) {}
+
+    function updateClock() {
+      const now = new Date();
+
+      let hours = now.getHours();
+      const mins = now.getMinutes().toString().padStart(2, '0');
+      const secs = now.getSeconds().toString().padStart(2, '0');
+      let ampmStr = '';
+
+      if (!is24Hour) {
+        ampmStr = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // 0 becomes 12
+      }
+
+      const hoursStr = is24Hour ? hours.toString().padStart(2, '0') : hours.toString();
+
+      document.getElementById('timeMain').innerHTML = `${hoursStr}<span class="time-colon">:</span>${mins}`;
+      document.getElementById('timeSec').textContent = secs;
+      document.getElementById('timeSec').style.display = showSec ? 'inline-block' : 'none';
+
+      const ampmEl = document.getElementById('timeAmPm');
+      if (!is24Hour) {
+        ampmEl.textContent = ampmStr;
+        ampmEl.style.display = 'inline-block';
+      } else {
+        ampmEl.style.display = 'none';
+      }
+
+      // Date update
+      const dayName = now.toLocaleDateString(undefined, { weekday: 'long' });
+      const fullDate = now.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+
+      document.getElementById('dateDay').textContent = dayName;
+      document.getElementById('dateFull').textContent = fullDate;
+    }
+
+    function setFormat(fmt) {
+      is24Hour = (fmt === 24);
+      document.getElementById('btn24').classList.toggle('active', is24Hour);
+      document.getElementById('btn12').classList.toggle('active', !is24Hour);
+      updateClock();
+    }
+
+    function toggleSeconds() {
+      showSec = !showSec;
+      document.getElementById('btnSec').classList.toggle('active', showSec);
+      document.getElementById('timeSec').style.display = showSec ? 'inline-block' : 'none';
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    updateClock();
+    setInterval(updateClock, 250);
+  </script>
+
+</body>
+</html>
