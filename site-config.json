@@ -1,0 +1,42 @@
+{
+  "hero": {
+    "title": "Dragomir",
+    "subtitle": "",
+    "showSubtitle": false
+  },
+  "banner": {
+    "enabled": false,
+    "text": "Welcome to my website!",
+    "type": "info",
+    "dismissible": true
+  },
+  "spotify": {
+    "enabled": false,
+    "clientId": "",
+    "refreshToken": "",
+    "demoMode": false
+  },
+  "socials": {
+    "discord": "https://discord.com",
+    "github": "https://github.com",
+    "customLabel": "",
+    "customUrl": ""
+  },
+  "pages": {
+    "clockEnabled": true,
+    "vaultEnabled": true,
+    "maintenanceMode": false,
+    "maintenanceMessage": "Website is currently undergoing brief maintenance. Please check back soon."
+  },
+  "theme": {
+    "accentColor": "#7877c6",
+    "accentGlow": "rgba(120, 119, 198, 0.12)"
+  },
+  "firebase": {
+    "databaseURL": "https://admin-dragomir-default-rtdb.europe-west1.firebasedatabase.app",
+    "apiKey": "",
+    "projectId": "admin-dragomir"
+  },
+  "updatedAt": 1773177600000
+}
+
