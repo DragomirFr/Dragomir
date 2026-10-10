@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dragomir</title>
+  <title>Admin Dashboard — Dragomir</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,12 +17,15 @@
     :root {
       --bg: #09090b;
       --card-bg: rgba(18, 18, 22, 0.7);
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.18);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-hover: rgba(255, 255, 255, 0.16);
       --text-main: #f4f4f5;
       --text-muted: #a1a1aa;
       --text-subtle: #52525b;
       --spotify-green: #1db954;
+      --accent: #7877c6;
+      --danger: #ef4444;
+      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
     }
 
     body {
@@ -35,338 +38,286 @@
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6rem;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Main Hero */
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 2rem 1.5rem;
+    /* Container */
+    .admin-container {
       width: 100%;
+      max-width: 900px;
+      padding: 2.5rem 1.5rem;
     }
 
-    h1 {
-      font-size: clamp(3.5rem, 11vw, 8.5rem);
-      font-weight: 700;
-      letter-spacing: -0.035em;
-      line-height: 1;
-      color: #ffffff;
-      user-select: none;
-    }
-
-    /* Spotify Minimalist Pill */
-    .spotify-widget {
-      margin-top: 2rem;
-      animation: fadeIn 0.4s ease;
-    }
-
-    .spotify-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: rgba(18, 18, 22, 0.65);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--border);
-      border-radius: 9999px;
-      padding: 0.35rem 1rem 0.35rem 0.4rem;
-      text-decoration: none;
-      color: var(--text-main);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
-      max-width: 90vw;
-    }
-
-    .spotify-pill:hover {
-      background: rgba(24, 24, 30, 0.9);
-      border-color: rgba(29, 185, 84, 0.35);
-      transform: translateY(-2px);
-      box-shadow: 0 12px 30px -8px rgba(29, 185, 84, 0.2);
-    }
-
-    .spotify-thumb-wrap {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      overflow: hidden;
-      flex-shrink: 0;
-      background: rgba(255, 255, 255, 0.05);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    }
-
-    .spotify-thumb {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .spotify-meta {
+    /* Header */
+    .admin-header {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.82rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 340px;
-    }
-
-    .spotify-title {
-      font-weight: 600;
-      color: #ffffff;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .spotify-sep {
-      color: var(--text-muted);
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin: 0 0.45rem;
-      line-height: 1;
-      display: inline-block;
-      opacity: 0.6;
-      vertical-align: middle;
-      user-select: none;
-    }
-
-    .spotify-by {
-      font-weight: 400;
-      color: var(--text-muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Sound Waves */
-    .spotify-wave {
-      display: flex;
-      align-items: flex-end;
-      gap: 2px;
-      height: 12px;
-      padding-left: 0.25rem;
-      flex-shrink: 0;
-    }
-
-    .wave-bar {
-      width: 2.5px;
-      background: var(--spotify-green);
-      border-radius: 9999px;
-    }
-
-    .w-1 { animation: soundWave 1.1s ease-in-out infinite alternate; }
-    .w-2 { animation: soundWave 0.75s ease-in-out infinite alternate; }
-    .w-3 { animation: soundWave 1.35s ease-in-out infinite alternate; }
-    .w-4 { animation: soundWave 0.9s ease-in-out infinite alternate; }
-
-    @keyframes soundWave {
-      0% { height: 3px; }
-      100% { height: 12px; }
-    }
-
-    .spotify-pill-offline {
-      padding: 0.45rem 1rem 0.45rem 0.85rem;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      gap: 0.55rem;
-    }
-
-    .spotify-mini-logo {
-      width: 15px;
-      height: 15px;
-      fill: var(--text-subtle);
-      flex-shrink: 0;
-    }
-
-    .spotify-logo-muted {
-      width: 16px;
-      height: 16px;
-      fill: var(--text-subtle);
-    }
-
-    /* Footer */
-    footer {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      border-top: 1px solid var(--border);
-      font-size: 0.85rem;
-      color: var(--text-muted);
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 1rem;
     }
 
-    .footer-group {
+    .header-title-group h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
       display: flex;
       align-items: center;
-      gap: 1.5rem;
-    }
-
-    .footer-buttons {
-      display: flex;
       gap: 0.6rem;
-      align-items: center;
     }
 
-    .footer-btn {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.35rem 0.85rem;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 0.8rem;
-      font-weight: 500;
-      cursor: pointer;
-      font-family: inherit;
-      outline: none;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .footer-btn:hover {
-      background: rgba(255, 255, 255, 0.09);
-      border-color: var(--border-hover);
-      color: var(--text-main);
-      transform: translateY(-1px);
-    }
-
-    .social-links {
-      display: flex;
-      gap: 1.5rem;
-      align-items: center;
-    }
-
-    .social-link {
-      color: var(--text-muted);
-      text-decoration: none;
-      transition: color 0.2s ease;
-    }
-
-    .social-link:hover {
-      color: var(--text-main);
-    }
-
-    /* Settings Modal */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      z-index: 1000;
-      opacity: 1;
-      transition: opacity 0.2s ease;
-    }
-
-    .modal-box {
-      width: 100%;
-      max-width: 480px;
-      background: rgba(18, 18, 22, 0.94);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 1.85rem;
-      box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04);
-      position: relative;
-      animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes modalPop {
-      0% { transform: scale(0.96) translateY(8px); opacity: 0; }
-      100% { transform: scale(1) translateY(0); opacity: 1; }
-    }
-
-    @keyframes fadeIn {
-      0% { opacity: 0; transform: translateY(6px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1.5rem;
-    }
-
-    .modal-header h2 {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-    }
-
-    .modal-header p {
-      font-size: 0.825rem;
+    .header-title-group p {
+      font-size: 0.85rem;
       color: var(--text-muted);
       margin-top: 0.25rem;
     }
 
-    .modal-close-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
+    .header-actions {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: all 0.15s ease;
+      gap: 0.75rem;
     }
 
-    .modal-close-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
+    .header-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.95rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .header-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--text-main);
+    }
+
+    .btn-logout {
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    /* Sync Status Banner */
+    .sync-status-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.15rem 1.35rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .sync-status-left {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .status-pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #71717a;
+      box-shadow: 0 0 0 0 rgba(113, 113, 122, 0.5);
+      flex-shrink: 0;
+    }
+
+    .status-pulse-dot.online {
+      background: var(--spotify-green);
+      box-shadow: 0 0 10px rgba(29, 185, 84, 0.8);
+      animation: pulseGreen 2s infinite;
+    }
+
+    .status-pulse-dot.warning {
+      background: #f59e0b;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+    }
+
+    @keyframes pulseGreen {
+      0% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(29, 185, 84, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0); }
+    }
+
+    .sync-status-title {
+      font-size: 0.9rem;
+      font-weight: 700;
       color: #ffffff;
     }
 
-    /* Setting Rows */
-    .setting-row {
+    .sync-status-desc {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .btn-configure-sync {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: #ffffff;
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.775rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-configure-sync:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--card-border-hover);
+    }
+
+    /* Cards Grid */
+    .cards-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .control-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.2s ease;
+    }
+
+    .control-card:hover {
+      border-color: var(--card-border-hover);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .card-title-group h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title-group p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 1.15rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+    }
+
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0.7rem 0.95rem;
+      font-size: 0.88rem;
+      color: #ffffff;
+      outline: none;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      border-color: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 70px;
+      line-height: 1.45;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 640px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Toggle Switch */
+    .toggle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
-      padding: 0.75rem 0;
+      padding: 0.65rem 0;
     }
 
-    .setting-info {
-      text-align: left;
-    }
-
-    .setting-label {
-      display: block;
+    .toggle-info h4 {
       font-size: 0.92rem;
       font-weight: 600;
       color: #ffffff;
     }
 
-    .setting-desc {
-      display: block;
+    .toggle-info p {
       font-size: 0.775rem;
       color: var(--text-muted);
-      margin-top: 0.2rem;
-      line-height: 1.4;
+      margin-top: 0.15rem;
     }
 
-    /* Toggle Switch */
     .toggle-switch {
       position: relative;
       display: inline-block;
@@ -389,7 +340,7 @@
       right: 0;
       bottom: 0;
       background: rgba(255, 255, 255, 0.1);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       border-radius: 9999px;
     }
@@ -415,1029 +366,907 @@
       transform: translateX(20px);
     }
 
-    /* Spotify Config Subsection */
-    .config-section {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.15rem;
-      margin-top: 1rem;
-      text-align: left;
-    }
-
-    .status-badge-row {
+    /* Theme color swatches */
+    .theme-swatches {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-      padding-bottom: 0.85rem;
-      border-bottom: 1px solid var(--border);
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
     }
 
-    .connection-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text-muted);
-    }
-
-    .status-dot-green {
-      width: 7px;
-      height: 7px;
+    .theme-swatch {
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      background: var(--spotify-green);
-      box-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
-    }
-
-    .status-dot-gray {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--text-subtle);
-    }
-
-    .config-field label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      margin-bottom: 0.4rem;
-    }
-
-    .config-field input[type="text"] {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.65rem 0.85rem;
-      font-size: 0.85rem;
-      color: #ffffff;
-      outline: none;
-      font-family: inherit;
+      cursor: pointer;
+      border: 2px solid transparent;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       transition: all 0.2s ease;
+      position: relative;
     }
 
-    .config-field input:focus {
-      border-color: rgba(255, 255, 255, 0.25);
-      background: rgba(255, 255, 255, 0.07);
+    .theme-swatch:hover {
+      transform: scale(1.12);
     }
 
-    .redirect-box {
-      margin-top: 0.85rem;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.6rem 0.75rem;
+    .theme-swatch.active {
+      border-color: #ffffff;
+      transform: scale(1.15);
+    }
+
+    /* Live Preview Box */
+    .live-preview-box {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+    }
+
+    .preview-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-subtle);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    /* Floating Action Bar */
+    .floating-bar {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18, 18, 22, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border-hover);
+      border-radius: 9999px;
+      padding: 0.55rem 0.85rem 0.55rem 1.25rem;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 1rem;
+      box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      z-index: 999;
+      max-width: 90vw;
+    }
+
+    .floating-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .floating-btn-group {
+      display: flex;
+      align-items: center;
       gap: 0.5rem;
     }
 
-    .redirect-url-text {
-      font-family: monospace;
-      font-size: 0.725rem;
-      color: var(--text-muted);
-      word-break: break-all;
-    }
-
-    .btn-copy-uri {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border);
-      color: #ffffff;
-      padding: 0.3rem 0.6rem;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s ease;
-    }
-
-    .btn-copy-uri:hover {
-      background: rgba(255, 255, 255, 0.16);
-    }
-
-    .field-hint {
-      font-size: 0.725rem;
-      color: var(--text-subtle);
-      margin-top: 0.5rem;
-      line-height: 1.45;
-    }
-
-    .btn-spotify {
-      width: 100%;
+    .btn-push-live {
       background: var(--spotify-green);
       color: #000000;
-      font-weight: 700;
       border: none;
+      padding: 0.65rem 1.25rem;
       border-radius: 9999px;
-      padding: 0.75rem 1.25rem;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
+      font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
+      gap: 0.45rem;
       transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(29, 185, 84, 0.35);
       font-family: inherit;
-      margin-top: 1rem;
+      white-space: nowrap;
     }
 
-    .btn-spotify:hover {
+    .btn-push-live:hover {
       background: #1ed760;
       transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(29, 185, 84, 0.35);
+      box-shadow: 0 6px 20px rgba(29, 185, 84, 0.5);
     }
 
-    .btn-disconnect {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      color: #ef4444;
-      padding: 0.35rem 0.8rem;
+    .btn-save-file {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: #ffffff;
+      padding: 0.65rem 1rem;
       border-radius: 9999px;
-      font-size: 0.75rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
+      font-family: inherit;
+      white-space: nowrap;
     }
 
-    .btn-disconnect:hover {
-      background: rgba(239, 68, 68, 0.22);
+    .btn-save-file:hover {
+      background: rgba(255, 255, 255, 0.15);
     }
 
-    /* Public Broadcast Section */
-    .public-broadcast-box {
-      margin-top: 1rem;
-      background: rgba(29, 185, 84, 0.05);
-      border: 1px solid rgba(29, 185, 84, 0.22);
-      border-radius: 14px;
-      padding: 0.95rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      text-align: left;
-    }
-
-    .public-broadcast-header {
+    /* Lock Screen Overlay */
+    .lock-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.12), transparent),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02), transparent 70%);
+      z-index: 10000;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
+      justify-content: center;
+      padding: 1.5rem;
     }
 
-    .broadcast-badge {
-      font-size: 0.7rem;
+    .lock-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);
+    }
+
+    .lock-badge {
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--spotify-green);
-      background: rgba(29, 185, 84, 0.12);
-      border: 1px solid rgba(29, 185, 84, 0.25);
-      padding: 0.2rem 0.55rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: rgba(120, 119, 198, 0.12);
+      border: 1px solid rgba(120, 119, 198, 0.25);
+      padding: 0.3rem 0.75rem;
       border-radius: 9999px;
+      display: inline-block;
+      margin-bottom: 1.25rem;
     }
 
-    .broadcast-status-tag {
-      font-size: 0.74rem;
+    .lock-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+    }
+
+    .lock-subtitle {
+      font-size: 0.825rem;
       color: var(--text-muted);
+      margin-bottom: 1.75rem;
     }
 
-    .broadcast-desc {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }
-
-    .broadcast-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .btn-broadcast-primary {
-      width: 100%;
-      background: #ffffff;
-      color: #000000;
-      border: none;
-      border-radius: 9999px;
-      padding: 0.65rem 1rem;
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.45rem;
-      transition: all 0.2s ease;
-      font-family: inherit;
-    }
-
-    .btn-broadcast-primary:hover {
-      background: #f4f4f5;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
-    }
-
-    .btn-broadcast-secondary {
+    .lock-input {
       width: 100%;
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      border-radius: 9999px;
-      padding: 0.55rem 1rem;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem;
+      color: #ffffff;
+      text-align: center;
+      letter-spacing: 0.1em;
+      outline: none;
       font-family: inherit;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      margin-bottom: 1rem;
+      transition: all 0.2s ease;
     }
 
-    .btn-broadcast-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--border-hover);
+    .lock-input:focus {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
     }
 
-    .token-preview-box {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.5rem 0.65rem;
-      font-family: monospace;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      word-break: break-all;
-      max-height: 60px;
-      overflow-y: auto;
-    }
-
-    .modal-footer {
-      margin-top: 1.5rem;
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .btn-save {
+    .btn-unlock {
       width: 100%;
       background: #ffffff;
       color: #000000;
       border: none;
       border-radius: 9999px;
-      padding: 0.75rem 1.25rem;
-      font-size: 0.88rem;
-      font-weight: 600;
+      padding: 0.8rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s ease;
       font-family: inherit;
     }
 
-    .btn-save:hover {
-      background: #e4e4e7;
+    .btn-unlock:hover {
+      background: #f4f4f5;
       transform: translateY(-1px);
+    }
+
+    .lock-error {
+      color: #ef4444;
+      font-size: 0.78rem;
+      margin-top: 0.75rem;
+      min-height: 1.2rem;
+    }
+
+    /* Toast Notification */
+    .toast-pill {
+      position: fixed;
+      top: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: rgba(24, 24, 28, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      padding: 0.65rem 1.25rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      z-index: 99999;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toast-pill.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
     }
 
     .hidden {
       display: none !important;
     }
-
-    @media (max-width: 640px) {
-      footer {
-        flex-direction: column;
-        gap: 1.25rem;
-        text-align: center;
-      }
-      .footer-group {
-        flex-direction: column;
-        gap: 1rem;
-      }
-    }
   </style>
 </head>
 <body>
 
-  <main>
-    <h1>Dragomir</h1>
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="toast-pill">Changes saved</div>
 
-    <!-- Live Spotify Minimal Capsule -->
-    <div id="spotifyWidget" class="spotify-widget hidden">
-      <a id="spotifyLink" href="https://open.spotify.com" target="_blank" rel="noopener noreferrer" class="spotify-pill">
-        <div class="spotify-thumb-wrap">
-          <img id="spotifyAlbumArt" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=100&h=100&fit=crop" alt="Album Art" class="spotify-thumb">
-        </div>
-        <div class="spotify-meta">
-          <span class="spotify-title" id="spotifyTrack">Song Title</span>
-          <span class="spotify-sep">&mdash;</span>
-          <span class="spotify-by" id="spotifyArtist">Artist</span>
-        </div>
-        <div class="spotify-wave">
-          <span class="wave-bar w-1"></span>
-          <span class="wave-bar w-2"></span>
-          <span class="wave-bar w-3"></span>
-          <span class="wave-bar w-4"></span>
-        </div>
-      </a>
-
-      <!-- When offline / paused -->
-      <div id="spotifyOffline" class="spotify-pill spotify-pill-offline hidden">
-        <svg class="spotify-mini-logo" viewBox="0 0 24 24">
-          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.495 17.303c-.215.352-.676.464-1.028.248-2.822-1.724-6.376-2.114-10.562-1.157-.402.092-.803-.16-.895-.562-.092-.403.16-.804.562-.896 4.582-1.047 8.514-.598 11.675 1.339.352.216.464.676.248 1.028zm1.467-3.262c-.27.44-.848.58-1.288.31-3.23-1.986-8.154-2.56-11.974-1.401-.497.151-1.026-.135-1.177-.632-.151-.498.135-1.027.632-1.178 4.373-1.328 9.803-.683 13.497 1.613.44.27.58.848.31 1.288zm.126-3.41c-3.873-2.3-10.264-2.512-13.978-1.384-.594.181-1.226-.157-1.407-.751-.181-.594.157-1.226.751-1.407 4.269-1.296 11.324-1.048 15.787 1.601.534.317.708 1.008.391 1.542-.317.534-1.008.708-1.542.391z"/>
-        </svg>
-        <span>Not playing on Spotify</span>
-      </div>
+  <!-- Lock Screen Authentication Overlay -->
+  <div id="adminLockScreen" class="lock-overlay">
+    <div class="lock-card">
+      <span class="lock-badge">Admin Access</span>
+      <h2 class="lock-title">Control Panel</h2>
+      <p class="lock-subtitle">Enter master passcode to manage live site settings</p>
+      <form onsubmit="handleAdminLogin(event)">
+        <input type="password" id="adminPasswordInput" class="lock-input" placeholder="Enter password (default: dragomir)" autocomplete="current-password" autofocus>
+        <button type="submit" class="btn-unlock">Unlock Dashboard</button>
+      </form>
+      <p id="lockErrorMsg" class="lock-error"></p>
+      <p style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 0.5rem;">Default password is <code style="color:var(--text-muted);">dragomir</code></p>
     </div>
-  </main>
+  </div>
 
-  <footer>
-    <span>&copy; 2026 Dragomir. All rights reserved.</span>
-    <div class="footer-group">
-      <div class="footer-buttons">
-        <a href="clock.html" class="footer-btn">Clock</a>
-        <a href="vault.html" class="footer-btn">Vault</a>
-        <a href="admin.html" class="footer-btn">Admin</a>
-        <button type="button" class="footer-btn" id="settingsBtn" onclick="toggleSettingsModal(true)">Settings</button>
-      </div>
-      <div class="social-links">
-        <a href="#" class="social-link">Discord</a>
-        <a href="#" class="social-link">GitHub</a>
-      </div>
-    </div>
-  </footer>
+  <!-- Main Dashboard Content -->
+  <div id="adminDashboard" class="admin-container hidden">
 
-  <!-- Settings Modal Dialog -->
-  <div id="settingsModal" class="modal-overlay hidden" onclick="handleModalBackdropClick(event)">
-    <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-title-group">
-          <h2>Settings</h2>
-          <p>Direct Spotify Web API Integration</p>
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title-group">
+        <h1>
+          <span>Site Control Panel</span>
+          <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,255,255,0.06); padding: 0.2rem 0.5rem; border-radius: 6px; color: var(--text-muted); text-transform: uppercase;">Live Engine</span>
+        </h1>
+        <p>Live real-time settings controller for Dragomir's website</p>
+      </div>
+      <div class="header-actions">
+        <a href="index.html" target="_blank" class="header-btn">
+          <span>View Site</span>
+          <svg style="width:12px;height:12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+        <button type="button" class="header-btn btn-logout" onclick="handleAdminLogout()">Lock</button>
+      </div>
+    </header>
+
+    <!-- Cloud Sync Status Card -->
+    <div class="sync-status-card">
+      <div class="sync-status-left">
+        <span class="status-pulse-dot" id="syncStatusDot"></span>
+        <div>
+          <div class="sync-status-title" id="syncStatusTitle">Checking Realtime Cloud Sync...</div>
+          <div class="sync-status-desc" id="syncStatusDesc">Firebase Realtime Database powers instant updates to all visitors.</div>
         </div>
-        <button type="button" class="modal-close-btn" onclick="toggleSettingsModal(false)" title="Close">&times;</button>
       </div>
+      <button type="button" class="btn-configure-sync" onclick="toggleFirebaseConfigCard()">Configure Firebase</button>
+    </div>
 
-      <div class="modal-body">
-        <!-- Toggle: Spotify Status -->
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Show Spotify Status</span>
-            <span class="setting-desc">Display your currently playing song under your name</span>
+    <!-- Firebase Connection Setup (Collapsible) -->
+    <div id="firebaseConfigCard" class="control-card hidden" style="margin-bottom: 2rem; border-color: rgba(120, 119, 198, 0.3);">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h2>Firebase Realtime Database Setup</h2>
+          <p>Connect a free Firebase database to push updates live to every visitor in real time</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fbDatabaseUrlInput">Firebase Realtime Database URL</label>
+        <input type="text" id="fbDatabaseUrlInput" class="form-input" placeholder="https://your-project-default-rtdb.firebaseio.com" spellcheck="false">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="fbApiKeyInput">API Key (Optional)</label>
+          <input type="text" id="fbApiKeyInput" class="form-input" placeholder="AIzaSy..." spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="fbProjectIdInput">Project ID (Optional)</label>
+          <input type="text" id="fbProjectIdInput" class="form-input" placeholder="my-website-123" spellcheck="false">
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+        <button type="button" class="header-btn" style="background:#ffffff; color:#000000; font-weight:700;" onclick="saveFirebaseCredentials()">Save & Connect</button>
+        <button type="button" class="header-btn" onclick="toggleFirebaseConfigCard()">Cancel</button>
+      </div>
+      <p style="font-size: 0.75rem; color: var(--text-subtle); margin-top: 1rem; line-height: 1.5;">
+        <strong>Quick 60-Second Setup:</strong><br>
+        1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#ffffff; text-decoration:underline;">console.firebase.google.com</a> and create a free project.<br>
+        2. Click <em>Build &rarr; Realtime Database &rarr; Create Database</em>.<br>
+        3. Under <em>Rules</em>, set <code>".read": true</code> and <code>".write": true</code>.<br>
+        4. Copy the Database URL shown at the top and paste it into the field above!
+      </p>
+    </div>
+
+    <!-- Controls Grid -->
+    <div class="cards-grid">
+
+      <!-- Card 1: Branding & Hero -->
+      <div class="control-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2>Branding & Hero (index.html)</h2>
+            <p>Customize the main name title, subtitle, and ambient lighting glow</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="heroTitleInput">Main Hero Title</label>
+          <input type="text" id="heroTitleInput" class="form-input" placeholder="Dragomir" oninput="updateLivePreviews()">
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>Show Subtitle Tagline</h4>
+            <p>Display a clean descriptor text beneath your name</p>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="spotifyToggle" onchange="handleSpotifyToggleChange()">
+            <input type="checkbox" id="showSubtitleToggle" onchange="updateLivePreviews()">
             <span class="toggle-slider"></span>
           </label>
         </div>
 
-        <!-- Official Spotify API Section -->
-        <div id="spotifyConfigSection" class="config-section hidden">
-          <div class="status-badge-row">
-            <div class="connection-status" id="connectionStatusLabel">
-              <span class="status-dot-gray" id="connectionStatusDot"></span>
-              <span id="connectionStatusText">Not connected to Spotify</span>
-            </div>
-            <button type="button" class="btn-disconnect hidden" id="disconnectBtn" onclick="disconnectSpotify()">Disconnect</button>
-          </div>
+        <div class="form-group" id="subtitleInputGroup" style="margin-top: 0.5rem;">
+          <label class="form-label" for="heroSubtitleInput">Subtitle Text</label>
+          <input type="text" id="heroSubtitleInput" class="form-input" placeholder="Software Developer & Designer" oninput="updateLivePreviews()">
+        </div>
 
-          <!-- Public Broadcast Section: Shows when Spotify account is connected -->
-          <div id="publicBroadcastSection" class="public-broadcast-box hidden">
-            <div class="public-broadcast-header">
-              <span class="broadcast-badge">Public Visitor Sync</span>
-              <span class="broadcast-status-tag" id="broadcastStatusTag">Local Only</span>
-            </div>
-            <p class="broadcast-desc">
-              Save your authorization once to your website file. Any visitor will then see your live Spotify track without needing to log in.
-            </p>
-            <div class="broadcast-actions">
-              <button type="button" class="btn-broadcast-primary" onclick="savePublicConfigToFile()">
-                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                <span>Save to index.html (Live for Everyone)</span>
-              </button>
-              <button type="button" class="btn-broadcast-secondary" id="btnCopySnippet" onclick="copyPublicConfigSnippet()">
-                Copy Config Snippet
-              </button>
-            </div>
-            <div style="margin-top: 0.35rem;">
-              <span style="font-size: 0.7rem; color: var(--text-subtle); display: block; margin-bottom: 0.25rem;">Authorized Refresh Token:</span>
-              <div class="token-preview-box" id="tokenPreviewDisplay">...</div>
-            </div>
-          </div>
-
-          <div id="connectFormFields">
-            <div class="config-field">
-              <label for="clientIdInput">Spotify Client ID</label>
-              <input type="text" id="clientIdInput" placeholder="Paste your Spotify Client ID" autocomplete="off">
-            </div>
-
-            <div style="margin-top: 0.85rem;">
-              <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);">
-                Redirect URI (Add to Spotify Dashboard)
-              </label>
-              <div class="redirect-box">
-                <span class="redirect-url-text" id="redirectUriDisplay"></span>
-                <button type="button" class="btn-copy-uri" id="btnCopyUri" onclick="copyRedirectUri()">Copy</button>
-              </div>
-            </div>
-
-            <p class="field-hint">
-              1. Create a free app at <a href="https://developer.spotify.com/dashboard" target="_blank" style="color:#ffffff; text-decoration:underline;">developer.spotify.com/dashboard</a>.<br>
-              2. Add the Redirect URI above into your Spotify app settings.<br>
-              3. Paste your Client ID and click Connect.
-            </p>
-
-            <button type="button" class="btn-spotify" onclick="startSpotifyAuth()">
-              <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.495 17.303c-.215.352-.676.464-1.028.248-2.822-1.724-6.376-2.114-10.562-1.157-.402.092-.803-.16-.895-.562-.092-.403.16-.804.562-.896 4.582-1.047 8.514-.598 11.675 1.339.352.216.464.676.248 1.028zm1.467-3.262c-.27.44-.848.58-1.288.31-3.23-1.986-8.154-2.56-11.974-1.401-.497.151-1.026-.135-1.177-.632-.151-.498.135-1.027.632-1.178 4.373-1.328 9.803-.683 13.497 1.613.44.27.58.848.31 1.288zm.126-3.41c-3.873-2.3-10.264-2.512-13.978-1.384-.594.181-1.226-.157-1.407-.751-.181-.594.157-1.226.751-1.407 4.269-1.296 11.324-1.048 15.787 1.601.534.317.708 1.008.391 1.542-.317.534-1.008.708-1.542.391z"/>
-              </svg>
-              <span>Connect with Spotify</span>
-            </button>
-          </div>
-
-          <div class="setting-row" style="margin-top: 1.15rem; border-top: 1px solid var(--border); padding-top: 0.85rem;">
-            <div class="setting-info">
-              <span class="setting-label">Demo Preview Track</span>
-              <span class="setting-desc">Preview the widget with a sample track</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="demoToggle">
-              <span class="toggle-slider"></span>
-            </label>
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label class="form-label">Ambient Glow Accent Theme</label>
+          <div class="theme-swatches">
+            <div class="theme-swatch" style="background:#7877c6;" data-color="#7877c6" data-glow="rgba(120, 119, 198, 0.12)" title="Classic Violet" onclick="selectTheme(this)"></div>
+            <div class="theme-swatch" style="background:#1db954;" data-color="#1db954" data-glow="rgba(29, 185, 84, 0.12)" title="Spotify Green" onclick="selectTheme(this)"></div>
+            <div class="theme-swatch" style="background:#06b6d4;" data-color="#06b6d4" data-glow="rgba(6, 182, 212, 0.12)" title="Cyber Cyan" onclick="selectTheme(this)"></div>
+            <div class="theme-swatch" style="background:#f43f5e;" data-color="#f43f5e" data-glow="rgba(244, 63, 94, 0.12)" title="Crimson" onclick="selectTheme(this)"></div>
+            <div class="theme-swatch" style="background:#f59e0b;" data-color="#f59e0b" data-glow="rgba(245, 158, 11, 0.12)" title="Amber Gold" onclick="selectTheme(this)"></div>
           </div>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn-save" onclick="saveSettings()">Save Changes</button>
+      <!-- Card 2: Global Live Announcement Banner -->
+      <div class="control-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2>Global Announcement Banner</h2>
+            <p>Display real-time announcements or status banners across all pages</p>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>Enable Global Banner</h4>
+            <p>Broadcasts instantly to all open visitor tabs</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="bannerEnabledToggle" onchange="updateLivePreviews()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-top: 0.85rem;">
+          <label class="form-label" for="bannerTextInput">Banner Message</label>
+          <input type="text" id="bannerTextInput" class="form-input" placeholder="🚀 New project just released! Check it out." oninput="updateLivePreviews()">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="bannerTypeSelect">Alert Style</label>
+            <select id="bannerTypeSelect" class="form-select" onchange="updateLivePreviews()">
+              <option value="info">Info (Cyan / Blue)</option>
+              <option value="success">Success (Green)</option>
+              <option value="warning">Warning (Amber)</option>
+              <option value="accent">Accent (Violet)</option>
+            </select>
+          </div>
+          <div class="form-group" style="display:flex; flex-direction:column; justify-content:center;">
+            <label class="form-label">Visitor Dismissible</label>
+            <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--text-muted); cursor:pointer;">
+              <input type="checkbox" id="bannerDismissibleToggle" checked onchange="updateLivePreviews()">
+              <span>Allow visitors to close banner</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Live Banner Preview -->
+        <div class="live-preview-box" id="bannerPreviewContainer">
+          <span class="preview-tag">Live Preview</span>
+          <div id="bannerPreviewElement" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between;">
+            <span id="bannerPreviewText">Banner preview message</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Spotify Live Controls -->
+      <div class="control-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2>Spotify Integration</h2>
+            <p>Control the live currently-playing track display for all visitors</p>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>Show Spotify Widget</h4>
+            <p>Display your live playing song capsule under your name</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="spotifyEnabledToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-row" style="margin-top: 0.85rem;">
+          <div class="form-group">
+            <label class="form-label" for="spotifyClientIdInput">Spotify Client ID</label>
+            <input type="text" id="spotifyClientIdInput" class="form-input" placeholder="Paste your Spotify Client ID">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="spotifyRefreshTokenInput">Spotify Refresh Token</label>
+            <input type="password" id="spotifyRefreshTokenInput" class="form-input" placeholder="Paste your Spotify Refresh Token">
+          </div>
+        </div>
+
+        <div class="toggle-row" style="border-top: 1px solid var(--card-border); margin-top: 0.85rem; padding-top: 0.85rem;">
+          <div class="toggle-info">
+            <h4>Demo Fallback Track</h4>
+            <p>Show sample track when you are offline or paused</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="spotifyDemoToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Card 4: Pages & Navigation -->
+      <div class="control-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2>Pages & Maintenance</h2>
+            <p>Manage visibility of subpages and global maintenance mode</p>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>Clock Page Link</h4>
+            <p>Show button in footer leading to /clock.html</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="clockEnabledToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row" style="border-top: 1px solid var(--card-border); padding-top: 0.75rem;">
+          <div class="toggle-info">
+            <h4>Vault Page Link</h4>
+            <p>Show button in footer leading to /vault.html</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vaultEnabledToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row" style="border-top: 1px solid var(--card-border); padding-top: 0.75rem;">
+          <div class="toggle-info">
+            <h4 style="color:#f59e0b;">Maintenance Mode</h4>
+            <p>Temporarily lock out all visitor pages with a maintenance screen</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="maintenanceModeToggle" onchange="toggleMaintenanceInput()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group hidden" id="maintenanceMsgGroup" style="margin-top: 0.85rem;">
+          <label class="form-label" for="maintenanceMsgInput">Custom Maintenance Message</label>
+          <input type="text" id="maintenanceMsgInput" class="form-input" placeholder="Website is currently undergoing brief maintenance. Please check back soon.">
+        </div>
+      </div>
+
+      <!-- Card 5: Social Links -->
+      <div class="control-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2>Social Links</h2>
+            <p>Update your external profiles across all footers</p>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="discordUrlInput">Discord Invite / Profile URL</label>
+            <input type="text" id="discordUrlInput" class="form-input" placeholder="https://discord.gg/yourserver">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="githubUrlInput">GitHub Profile URL</label>
+            <input type="text" id="githubUrlInput" class="form-input" placeholder="https://github.com/yourusername">
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 6: Security / Change Password -->
+      <div class="control-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2>Admin Passcode</h2>
+            <p>Change your admin password to protect access to this dashboard</p>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="newAdminPassInput">New Master Passcode</label>
+            <input type="password" id="newAdminPassInput" class="form-input" placeholder="Enter new password">
+          </div>
+          <div class="form-group" style="display:flex; align-items:flex-end;">
+            <button type="button" class="header-btn" style="width:100%; padding:0.7rem; justify-content:center;" onclick="changeAdminPassword()">Update Password</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /cards-grid -->
+
+    <!-- Floating Action Bar -->
+    <div class="floating-bar">
+      <span class="floating-status" id="floatingBarStatus">Ready to broadcast</span>
+      <div class="floating-btn-group">
+        <button type="button" class="btn-push-live" onclick="pushChangesLive()">
+          <svg style="width:15px;height:15px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>Push Live to Everyone</span>
+        </button>
+        <button type="button" class="btn-save-file" onclick="exportConfigToFile()">Save File</button>
       </div>
     </div>
-  </div>
 
-  <!-- Public Spotify Configuration (Allows all visitors to view live playback without logging in) -->
-  <script id="spotifyPublicConfig" type="application/json">
-  {
-    "enabled": false,
-    "clientId": "",
-    "refreshToken": ""
-  }
-  </script>
+  </div><!-- /admin-container -->
+
+  <!-- Load Realtime Sync Engine -->
+  <script src="site-sync.js"></script>
 
   <script>
-    // --- STORAGE & CONSTANTS ---
-    const STORAGE_KEY = 'dragomir_spotify_settings';
-    const SPOTIFY_AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-    const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token';
-    const SPOTIFY_NOW_PLAYING_ENDPOINT = 'https://api.spotify.com/v1/me/player/currently-playing';
-    const SPOTIFY_SCOPES = 'user-read-currently-playing user-read-playback-state';
+    // --- ADMIN SECURITY & AUTHENTICATION ---
+    const ADMIN_SESSION_KEY = 'dragomir_admin_auth_session';
+    const ADMIN_PASSWORD_KEY = 'dragomir_admin_password_hash';
+    const DEFAULT_PASS_HASH = 'dragomir'; // Simple fallback or custom stored password
 
-    let pollInterval = null;
-    let tokenRefreshPromise = null;
-
-    function getRedirectUri() {
-      // Strips query params & hash
-      return window.location.origin + window.location.pathname;
+    function isUserAuthenticated() {
+      return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'authenticated';
     }
 
-    function getPublicConfig() {
-      try {
-        const el = document.getElementById('spotifyPublicConfig');
-        if (el && el.textContent.trim()) {
-          return JSON.parse(el.textContent);
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const input = document.getElementById('adminPasswordInput').value;
+      const errorMsg = document.getElementById('lockErrorMsg');
+      const storedPass = localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_PASS_HASH;
+
+      if (input === storedPass) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, 'authenticated');
+        document.getElementById('adminLockScreen').classList.add('hidden');
+        document.getElementById('adminDashboard').classList.remove('hidden');
+        populateDashboardUI();
+        checkFirebaseConnection();
+      } else {
+        errorMsg.textContent = 'Incorrect password. Try again.';
+        document.getElementById('adminPasswordInput').value = '';
+        setTimeout(() => { errorMsg.textContent = ''; }, 3000);
+      }
+    }
+
+    function handleAdminLogout() {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      location.reload();
+    }
+
+    function changeAdminPassword() {
+      const newPass = document.getElementById('newAdminPassInput').value.trim();
+      if (!newPass) {
+        alert('Please enter a new password.');
+        return;
+      }
+      localStorage.setItem(ADMIN_PASSWORD_KEY, newPass);
+      document.getElementById('newAdminPassInput').value = '';
+      showToast('Admin password updated successfully!');
+    }
+
+    // --- DASHBOARD DATA POPULATION ---
+    let selectedAccentColor = '#7877c6';
+    let selectedAccentGlow = 'rgba(120, 119, 198, 0.12)';
+
+    function populateDashboardUI() {
+      const cfg = window.SiteSync ? window.SiteSync.getConfig() : {};
+
+      // Hero
+      document.getElementById('heroTitleInput').value = cfg.hero?.title || 'Dragomir';
+      document.getElementById('showSubtitleToggle').checked = !!cfg.hero?.showSubtitle;
+      document.getElementById('heroSubtitleInput').value = cfg.hero?.subtitle || '';
+
+      // Banner
+      document.getElementById('bannerEnabledToggle').checked = !!cfg.banner?.enabled;
+      document.getElementById('bannerTextInput').value = cfg.banner?.text || '';
+      document.getElementById('bannerTypeSelect').value = cfg.banner?.type || 'info';
+      document.getElementById('bannerDismissibleToggle').checked = cfg.banner?.dismissible !== false;
+
+      // Spotify
+      document.getElementById('spotifyEnabledToggle').checked = !!cfg.spotify?.enabled;
+      document.getElementById('spotifyClientIdInput').value = cfg.spotify?.clientId || '';
+      document.getElementById('spotifyRefreshTokenInput').value = cfg.spotify?.refreshToken || '';
+      document.getElementById('spotifyDemoToggle').checked = !!cfg.spotify?.demoMode;
+
+      // Pages
+      document.getElementById('clockEnabledToggle').checked = cfg.pages?.clockEnabled !== false;
+      document.getElementById('vaultEnabledToggle').checked = cfg.pages?.vaultEnabled !== false;
+      document.getElementById('maintenanceModeToggle').checked = !!cfg.pages?.maintenanceMode;
+      document.getElementById('maintenanceMsgInput').value = cfg.pages?.maintenanceMessage || '';
+      toggleMaintenanceInput();
+
+      // Socials
+      document.getElementById('discordUrlInput').value = cfg.socials?.discord || '';
+      document.getElementById('githubUrlInput').value = cfg.socials?.github || '';
+
+      // Theme
+      if (cfg.theme && cfg.theme.accentColor) {
+        selectedAccentColor = cfg.theme.accentColor;
+        selectedAccentGlow = cfg.theme.accentGlow || 'rgba(120, 119, 198, 0.12)';
+        highlightThemeSwatch(selectedAccentColor);
+      }
+
+      updateLivePreviews();
+    }
+
+    function toggleMaintenanceInput() {
+      const isChecked = document.getElementById('maintenanceModeToggle').checked;
+      document.getElementById('maintenanceMsgGroup').classList.toggle('hidden', !isChecked);
+    }
+
+    function selectTheme(el) {
+      document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+      selectedAccentColor = el.getAttribute('data-color');
+      selectedAccentGlow = el.getAttribute('data-glow');
+    }
+
+    function highlightThemeSwatch(color) {
+      document.querySelectorAll('.theme-swatch').forEach(s => {
+        if (s.getAttribute('data-color') === color) {
+          s.classList.add('active');
+        } else {
+          s.classList.remove('active');
         }
-      } catch (e) {
-        console.warn('Could not parse public Spotify config:', e);
-      }
-      return { enabled: false, clientId: '', refreshToken: '' };
-    }
-
-    function getSettings() {
-      const pub = getPublicConfig();
-      const hasPublicConfig = !!(pub && pub.enabled && pub.clientId && pub.refreshToken);
-
-      let local = {};
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) local = JSON.parse(raw);
-      } catch (e) {}
-
-      // If user explicitly configured locally, respect local toggle;
-      // otherwise, if public config is active in index.html, enable automatically for all visitors!
-      const isEnabled = local.spotifyEnabled !== undefined 
-        ? local.spotifyEnabled 
-        : (hasPublicConfig ? true : false);
-
-      const clientId = local.clientId || pub.clientId || '';
-      const refreshToken = local.refreshToken || pub.refreshToken || null;
-      const accessToken = local.accessToken || sessionStorage.getItem('spotify_access_token') || null;
-      const expiresAt = local.expiresAt || parseInt(sessionStorage.getItem('spotify_expires_at') || '0', 10);
-
-      return {
-        spotifyEnabled: isEnabled,
-        clientId: clientId,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        expiresAt: expiresAt,
-        demoMode: local.demoMode !== undefined ? local.demoMode : false,
-        hasPublicConfig: hasPublicConfig,
-        isLocallyConnected: !!(local.refreshToken)
-      };
-    }
-
-    function saveSettingsToStorage(settings) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    }
-
-    // --- PKCE HELPERS ---
-    function generateRandomString(length) {
-      const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-      const values = crypto.getRandomValues(new Uint8Array(length));
-      return values.reduce((acc, x) => acc + possible[x % possible.length], "");
-    }
-
-    async function sha256(plain) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(plain);
-      return window.crypto.subtle.digest('SHA-256', data);
-    }
-
-    function base64encode(input) {
-      return btoa(String.fromCharCode(...new Uint8Array(input)))
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_');
-    }
-
-    // --- SPOTIFY OAUTH (PKCE FLOW) ---
-    async function startSpotifyAuth() {
-      const clientId = document.getElementById('clientIdInput').value.trim();
-      if (!clientId) {
-        alert('Please enter your Spotify Client ID first.');
-        return;
-      }
-
-      if (window.location.protocol === 'file:') {
-        alert('Spotify OAuth requires running through a local web server (e.g. http://localhost) rather than opening directly from the desktop (file://). \n\nTip: You can use VS Code "Live Server" or run "python -m http.server" in this folder.');
-        return;
-      }
-
-      const settings = getSettings();
-      settings.clientId = clientId;
-      saveSettingsToStorage(settings);
-
-      const codeVerifier = generateRandomString(64);
-      localStorage.setItem('spotify_code_verifier', codeVerifier);
-
-      const hashed = await sha256(codeVerifier);
-      const codeChallenge = base64encode(hashed);
-
-      const params = new URLSearchParams({
-        client_id: clientId,
-        response_type: 'code',
-        redirect_uri: getRedirectUri(),
-        scope: SPOTIFY_SCOPES,
-        code_challenge_method: 'S256',
-        code_challenge: codeChallenge
       });
-
-      window.location.href = `${SPOTIFY_AUTH_ENDPOINT}?${params.toString()}`;
     }
 
-    async function handleSpotifyAuthCallback() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const error = urlParams.get('error');
+    function updateLivePreviews() {
+      // Banner Preview
+      const enabled = document.getElementById('bannerEnabledToggle').checked;
+      const text = document.getElementById('bannerTextInput').value.trim() || 'Banner preview message';
+      const type = document.getElementById('bannerTypeSelect').value;
+      const previewBox = document.getElementById('bannerPreviewContainer');
+      const previewEl = document.getElementById('bannerPreviewElement');
+      const previewText = document.getElementById('bannerPreviewText');
 
-      if (error) {
-        console.error('Spotify Auth error:', error);
-        window.history.replaceState({}, document.title, window.location.pathname);
-        return;
-      }
+      previewBox.style.opacity = enabled ? '1' : '0.4';
+      previewText.textContent = text;
 
-      if (!code) return;
-
-      const codeVerifier = localStorage.getItem('spotify_code_verifier');
-      const settings = getSettings();
-
-      if (!codeVerifier || !settings.clientId) return;
-
-      try {
-        const body = new URLSearchParams({
-          client_id: settings.clientId,
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: getRedirectUri(),
-          code_verifier: codeVerifier
-        });
-
-        const res = await fetch(SPOTIFY_TOKEN_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body.toString()
-        });
-
-        const data = await res.json();
-        if (data.access_token) {
-          settings.accessToken = data.access_token;
-          settings.refreshToken = data.refresh_token;
-          settings.expiresAt = Date.now() + (data.expires_in * 1000);
-          settings.spotifyEnabled = true;
-          saveSettingsToStorage(settings);
-          localStorage.removeItem('spotify_code_verifier');
-
-          // Open settings modal automatically to show option to make public for everyone
-          setTimeout(() => {
-            toggleSettingsModal(true);
-          }, 400);
-        }
-      } catch (err) {
-        console.error('Token exchange error:', err);
-      } finally {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    }
-
-    async function getValidAccessToken() {
-      const settings = getSettings();
-      if (!settings.refreshToken || !settings.clientId) return null;
-
-      // Check cached token in sessionStorage
-      const cachedToken = sessionStorage.getItem('spotify_access_token') || settings.accessToken;
-      const cachedExpires = parseInt(sessionStorage.getItem('spotify_expires_at') || '0', 10) || settings.expiresAt;
-      
-      if (cachedToken && Date.now() < (cachedExpires - 60000)) {
-        return cachedToken;
-      }
-
-      if (tokenRefreshPromise) {
-        return await tokenRefreshPromise;
-      }
-
-      tokenRefreshPromise = (async () => {
-        try {
-          const body = new URLSearchParams({
-            client_id: settings.clientId,
-            grant_type: 'refresh_token',
-            refresh_token: settings.refreshToken
-          });
-
-          const res = await fetch(SPOTIFY_TOKEN_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body.toString()
-          });
-
-          const data = await res.json();
-          if (data.access_token) {
-            const expiresAt = Date.now() + (data.expires_in * 1000);
-            sessionStorage.setItem('spotify_access_token', data.access_token);
-            sessionStorage.setItem('spotify_expires_at', expiresAt.toString());
-
-            // If locally connected user, keep local storage updated
-            if (settings.isLocallyConnected) {
-              settings.accessToken = data.access_token;
-              if (data.refresh_token) settings.refreshToken = data.refresh_token;
-              settings.expiresAt = expiresAt;
-              saveSettingsToStorage(settings);
-            }
-
-            return data.access_token;
-          } else {
-            console.warn('Spotify token refresh error:', data);
-            return null;
-          }
-        } catch (err) {
-          console.error('Token refresh error:', err);
-          return null;
-        } finally {
-          tokenRefreshPromise = null;
-        }
-      })();
-
-      return await tokenRefreshPromise;
-    }
-
-    async function savePublicConfigToFile() {
-      const settings = getSettings();
-      if (!settings.clientId || !settings.refreshToken) {
-        alert('Please connect your Spotify account first.');
-        return;
-      }
-
-      const updatedConfig = {
-        enabled: true,
-        clientId: settings.clientId,
-        refreshToken: settings.refreshToken
+      const colors = {
+        info: 'rgba(14, 165, 233, 0.2)',
+        success: 'rgba(34, 197, 94, 0.2)',
+        warning: 'rgba(245, 158, 11, 0.2)',
+        accent: 'rgba(120, 119, 198, 0.2)'
       };
-      const configJson = JSON.stringify(updatedConfig, null, 2);
 
-      let fileText = '';
-      try {
-        const res = await fetch(window.location.href);
-        if (res.ok) {
-          fileText = await res.text();
-        }
-      } catch (e) {}
+      const borders = {
+        info: 'rgba(14, 165, 233, 0.4)',
+        success: 'rgba(34, 197, 94, 0.4)',
+        warning: 'rgba(245, 158, 11, 0.4)',
+        accent: 'rgba(120, 119, 198, 0.4)'
+      };
 
-      if (!fileText || !fileText.includes('spotifyPublicConfig')) {
-        fileText = document.documentElement.outerHTML;
-        if (!fileText.startsWith('<!DOCTYPE html>')) {
-          fileText = '<!DOCTYPE html>\n' + fileText;
-        }
+      previewEl.style.background = colors[type] || colors.info;
+      previewEl.style.border = `1px solid ${borders[type] || borders.info}`;
+    }
+
+    // --- FIREBASE SYNC MANAGEMENT ---
+    function checkFirebaseConnection() {
+      const dot = document.getElementById('syncStatusDot');
+      const title = document.getElementById('syncStatusTitle');
+      const desc = document.getElementById('syncStatusDesc');
+      const fbConfig = window.SiteSync?.getFirebaseConfig();
+
+      if (fbConfig && fbConfig.databaseURL) {
+        dot.className = 'status-pulse-dot online';
+        title.textContent = 'Realtime Cloud Sync Active';
+        desc.textContent = `Connected to ${fbConfig.databaseURL}. Changes broadcast to all visitors in milliseconds!`;
+      } else {
+        dot.className = 'status-pulse-dot warning';
+        title.textContent = 'Local Mode (Cloud Sync Not Connected)';
+        desc.textContent = 'Click "Configure Firebase" to enable instant live sync for all online visitors.';
+      }
+    }
+
+    function toggleFirebaseConfigCard() {
+      const card = document.getElementById('firebaseConfigCard');
+      card.classList.toggle('hidden');
+      if (!card.classList.contains('hidden')) {
+        const fb = window.SiteSync?.getFirebaseConfig() || {};
+        document.getElementById('fbDatabaseUrlInput').value = fb.databaseURL || '';
+        document.getElementById('fbApiKeyInput').value = fb.apiKey || '';
+        document.getElementById('fbProjectIdInput').value = fb.projectId || '';
+      }
+    }
+
+    async function saveFirebaseCredentials() {
+      let dbUrl = document.getElementById('fbDatabaseUrlInput').value.trim();
+      const apiKey = document.getElementById('fbApiKeyInput').value.trim();
+      const projectId = document.getElementById('fbProjectIdInput').value.trim();
+
+      if (!dbUrl) {
+        alert('Please enter your Firebase Realtime Database URL.');
+        return;
       }
 
-      const configRegex = /<script id="spotifyPublicConfig" type="application\/json">[\s\S]*?<\/script>/i;
-      const replacement = `<script id="spotifyPublicConfig" type="application/json">\n${configJson}\n  <\/script>`;
+      // Ensure proper protocol
+      if (!dbUrl.startsWith('http')) {
+        dbUrl = 'https://' + dbUrl;
+      }
 
-      const newHtml = fileText.replace(configRegex, replacement);
+      const fbConfig = {
+        databaseURL: dbUrl,
+        apiKey: apiKey || undefined,
+        projectId: projectId || undefined
+      };
 
-      // Try modern File System Access API
+      window.SiteSync.setFirebaseConfig(fbConfig);
+      await window.SiteSync.initFirebaseSync();
+      checkFirebaseConnection();
+      toggleFirebaseConfigCard();
+      showToast('Firebase connected! Realtime sync is active.');
+    }
+
+    // --- PUSH LIVE CHANGES TO EVERYONE ---
+    async function pushChangesLive() {
+      const btn = document.querySelector('.btn-push-live');
+      btn.style.opacity = '0.7';
+      btn.style.pointerEvents = 'none';
+
+      const newConfig = {
+        hero: {
+          title: document.getElementById('heroTitleInput').value.trim() || 'Dragomir',
+          showSubtitle: document.getElementById('showSubtitleToggle').checked,
+          subtitle: document.getElementById('heroSubtitleInput').value.trim()
+        },
+        banner: {
+          enabled: document.getElementById('bannerEnabledToggle').checked,
+          text: document.getElementById('bannerTextInput').value.trim(),
+          type: document.getElementById('bannerTypeSelect').value,
+          dismissible: document.getElementById('bannerDismissibleToggle').checked
+        },
+        spotify: {
+          enabled: document.getElementById('spotifyEnabledToggle').checked,
+          clientId: document.getElementById('spotifyClientIdInput').value.trim(),
+          refreshToken: document.getElementById('spotifyRefreshTokenInput').value.trim(),
+          demoMode: document.getElementById('spotifyDemoToggle').checked
+        },
+        pages: {
+          clockEnabled: document.getElementById('clockEnabledToggle').checked,
+          vaultEnabled: document.getElementById('vaultEnabledToggle').checked,
+          maintenanceMode: document.getElementById('maintenanceModeToggle').checked,
+          maintenanceMessage: document.getElementById('maintenanceMsgInput').value.trim()
+        },
+        socials: {
+          discord: document.getElementById('discordUrlInput').value.trim(),
+          github: document.getElementById('githubUrlInput').value.trim()
+        },
+        theme: {
+          accentColor: selectedAccentColor,
+          accentGlow: selectedAccentGlow
+        }
+      };
+
+      const result = await window.SiteSync.pushLiveUpdate(newConfig);
+
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+
+      if (result.method === 'firebase_rtdb') {
+        showToast('⚡ Live changes broadcasted to all visitors!');
+      } else {
+        showToast('Saved locally. Connect Firebase above to broadcast to all visitors!');
+      }
+    }
+
+    // --- EXPORT TO STATIC FILE ---
+    async function exportConfigToFile() {
+      const cfg = window.SiteSync ? window.SiteSync.getConfig() : {};
+      const jsonStr = JSON.stringify(cfg, null, 2);
+
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await window.showSaveFilePicker({
-            suggestedName: 'index.html',
+            suggestedName: 'site-config.json',
             types: [{
-              description: 'HTML File',
-              accept: { 'text/html': ['.html'] }
+              description: 'JSON File',
+              accept: { 'application/json': ['.json'] }
             }]
           });
           const writable = await handle.createWritable();
-          await writable.write(newHtml);
+          await writable.write(jsonStr);
           await writable.close();
-          alert('Updated index.html successfully! Your live Spotify status will now show for everyone who visits.');
-          location.reload();
+          showToast('site-config.json updated successfully!');
           return;
         } catch (err) {
           if (err.name === 'AbortError') return;
-          console.warn('FilePicker error, falling back to download:', err);
         }
       }
 
-      // Fallback: trigger download of the updated index.html
-      const blob = new Blob([newHtml], { type: 'text/html' });
+      // Download fallback
+      const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'index.html';
+      a.download = 'site-config.json';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      alert('Downloaded updated index.html! Replace your current index.html with this file so all visitors can see your song.');
+      showToast('Downloaded site-config.json');
     }
 
-    function copyPublicConfigSnippet() {
-      const settings = getSettings();
-      if (!settings.clientId || !settings.refreshToken) {
-        alert('Please connect your Spotify account first.');
-        return;
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // --- INIT ---
+    window.addEventListener('DOMContentLoaded', () => {
+      if (isUserAuthenticated()) {
+        document.getElementById('adminLockScreen').classList.add('hidden');
+        document.getElementById('adminDashboard').classList.remove('hidden');
+        populateDashboardUI();
+        checkFirebaseConnection();
       }
-      const snippet = `<script id="spotifyPublicConfig" type="application/json">\n{\n  "enabled": true,\n  "clientId": "${settings.clientId}",\n  "refreshToken": "${settings.refreshToken}"\n}\n<\/script>`;
-      navigator.clipboard.writeText(snippet).then(() => {
-        const btn = document.getElementById('btnCopySnippet');
-        if (btn) {
-          const original = btn.textContent;
-          btn.textContent = 'Copied Snippet!';
-          btn.style.color = '#22c55e';
-          setTimeout(() => {
-            btn.textContent = original;
-            btn.style.color = '';
-          }, 2000);
-        }
-      });
-    }
-
-    function disconnectSpotify() {
-      const settings = getSettings();
-      settings.accessToken = null;
-      settings.refreshToken = null;
-      settings.expiresAt = 0;
-      saveSettingsToStorage(settings);
-      sessionStorage.removeItem('spotify_access_token');
-      sessionStorage.removeItem('spotify_expires_at');
-      updateModalUI();
-      applySpotifyWidget();
-    }
-
-    // --- FETCH LIVE SPOTIFY TRACK ---
-    async function fetchLiveSpotify() {
-      const token = await getValidAccessToken();
-      if (!token) return null;
-
-      try {
-        const res = await fetch(SPOTIFY_NOW_PLAYING_ENDPOINT, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (res.status === 204 || res.status > 400) {
-          return { isPlaying: false };
-        }
-
-        const data = await res.json();
-        if (data && data.item) {
-          return {
-            isPlaying: data.is_playing,
-            track: data.item.name,
-            artist: data.item.artists.map(a => a.name).join(', '),
-            albumArt: data.item.album.images[0]?.url,
-            url: data.item.external_urls?.spotify || 'https://open.spotify.com'
-          };
-        }
-      } catch (err) {
-        console.warn('Playback fetch error:', err);
-      }
-      return { isPlaying: false };
-    }
-
-    // --- UI UPDATES ---
-    async function updateSpotifyUI() {
-      const settings = getSettings();
-      const widget = document.getElementById('spotifyWidget');
-      const card = document.getElementById('spotifyLink');
-      const offline = document.getElementById('spotifyOffline');
-
-      if (!settings.spotifyEnabled) {
-        widget.classList.add('hidden');
-        clearInterval(pollInterval);
-        return;
-      }
-
-      widget.classList.remove('hidden');
-
-      // 1. If connected (either via public config or local token), fetch live track
-      if (settings.refreshToken || settings.accessToken) {
-        const live = await fetchLiveSpotify();
-        if (live && live.isPlaying && live.track) {
-          document.getElementById('spotifyAlbumArt').src = live.albumArt || '';
-          document.getElementById('spotifyTrack').textContent = live.track;
-          document.getElementById('spotifyArtist').textContent = live.artist;
-          document.getElementById('spotifyLink').href = live.url;
-
-          card.classList.remove('hidden');
-          offline.classList.add('hidden');
-          return;
-        } else if (!settings.demoMode) {
-          card.classList.add('hidden');
-          offline.classList.remove('hidden');
-          return;
-        }
-      }
-
-      // 2. Demo fallback
-      if (settings.demoMode) {
-        document.getElementById('spotifyAlbumArt').src = 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=100&h=100&fit=crop';
-        document.getElementById('spotifyTrack').textContent = 'Starboy';
-        document.getElementById('spotifyArtist').textContent = 'The Weeknd, Daft Punk';
-        document.getElementById('spotifyLink').href = 'https://open.spotify.com/track/7MXVkk9YM5IZxh0WSlVIva';
-        card.classList.remove('hidden');
-        offline.classList.add('hidden');
-      } else {
-        card.classList.add('hidden');
-        offline.classList.remove('hidden');
-      }
-    }
-
-    function applySpotifyWidget() {
-      clearInterval(pollInterval);
-      const settings = getSettings();
-
-      if (!settings.spotifyEnabled) {
-        document.getElementById('spotifyWidget').classList.add('hidden');
-        return;
-      }
-
-      updateSpotifyUI();
-      if (settings.refreshToken || settings.accessToken) {
-        // Poll every 5 seconds for live track updates
-        pollInterval = setInterval(updateSpotifyUI, 5000);
-      }
-    }
-
-    // --- MODAL & SETTINGS CONTROLS ---
-    function updateModalUI() {
-      const settings = getSettings();
-      document.getElementById('spotifyToggle').checked = !!settings.spotifyEnabled;
-      document.getElementById('clientIdInput').value = settings.clientId || '';
-      document.getElementById('demoToggle').checked = settings.demoMode !== false;
-      document.getElementById('redirectUriDisplay').textContent = getRedirectUri();
-
-      const isConnected = !!(settings.refreshToken || settings.accessToken);
-      const statusDot = document.getElementById('connectionStatusDot');
-      const statusText = document.getElementById('connectionStatusText');
-      const disconnectBtn = document.getElementById('disconnectBtn');
-      const connectFields = document.getElementById('connectFormFields');
-      const broadcastSection = document.getElementById('publicBroadcastSection');
-      const broadcastStatusTag = document.getElementById('broadcastStatusTag');
-      const tokenPreview = document.getElementById('tokenPreviewDisplay');
-
-      if (isConnected) {
-        statusDot.className = 'status-dot-green';
-        statusText.textContent = settings.hasPublicConfig ? 'Connected & Live Publicly' : 'Connected to Spotify';
-        disconnectBtn.classList.remove('hidden');
-        connectFields.classList.add('hidden');
-        broadcastSection.classList.remove('hidden');
-
-        if (settings.hasPublicConfig) {
-          broadcastStatusTag.textContent = '✓ Live for Everyone';
-          broadcastStatusTag.style.color = 'var(--spotify-green)';
-        } else {
-          broadcastStatusTag.textContent = 'Local Only (Click Save below)';
-          broadcastStatusTag.style.color = '#f59e0b';
-        }
-
-        if (tokenPreview && settings.refreshToken) {
-          tokenPreview.textContent = settings.refreshToken.substring(0, 16) + '... (Valid)';
-          tokenPreview.title = settings.refreshToken;
-        }
-      } else {
-        statusDot.className = 'status-dot-gray';
-        statusText.textContent = 'Not connected to Spotify';
-        disconnectBtn.classList.add('hidden');
-        connectFields.classList.remove('hidden');
-        broadcastSection.classList.add('hidden');
-      }
-
-      document.getElementById('spotifyConfigSection').classList.toggle('hidden', !settings.spotifyEnabled);
-    }
-
-    function toggleSettingsModal(open) {
-      const modal = document.getElementById('settingsModal');
-      if (open) {
-        updateModalUI();
-        modal.classList.remove('hidden');
-      } else {
-        modal.classList.add('hidden');
-      }
-    }
-
-    function handleModalBackdropClick(e) {
-      if (e.target.id === 'settingsModal') {
-        toggleSettingsModal(false);
-      }
-    }
-
-    function handleSpotifyToggleChange() {
-      const isChecked = document.getElementById('spotifyToggle').checked;
-      document.getElementById('spotifyConfigSection').classList.toggle('hidden', !isChecked);
-    }
-
-    function copyRedirectUri() {
-      const uri = getRedirectUri();
-      const btn = document.getElementById('btnCopyUri');
-      navigator.clipboard.writeText(uri).then(() => {
-        if (btn) {
-          const original = btn.textContent;
-          btn.textContent = 'Copied!';
-          btn.style.color = '#22c55e';
-          btn.style.borderColor = 'rgba(34, 197, 94, 0.4)';
-          setTimeout(() => {
-            btn.textContent = original;
-            btn.style.color = '';
-            btn.style.borderColor = '';
-          }, 2000);
-        }
-      });
-    }
-
-    function saveSettings() {
-      const settings = getSettings();
-      settings.spotifyEnabled = document.getElementById('spotifyToggle').checked;
-      settings.clientId = document.getElementById('clientIdInput').value.trim();
-      settings.demoMode = document.getElementById('demoToggle').checked;
-
-      saveSettingsToStorage(settings);
-      toggleSettingsModal(false);
-      applySpotifyWidget();
-    }
-
-    // Escape key closes modal
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') toggleSettingsModal(false);
-    });
-
-    // Listen for live broadcast updates from Admin Control Panel
-    window.addEventListener('siteConfigUpdated', (e) => {
-      const config = e.detail;
-      if (config && config.spotify) {
-        applySpotifyWidget();
-      }
-    });
-
-    // Initialize on page load
-    window.addEventListener('DOMContentLoaded', async () => {
-      await handleSpotifyAuthCallback();
-      applySpotifyWidget();
     });
   </script>
 
-  <!-- Realtime Sync Engine -->
-  <script src="site-sync.js"></script>
-
 </body>
 </html>
+
