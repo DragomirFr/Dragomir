@@ -3,7 +3,10 @@
     "siteConfig": {
       ".read": true,
       ".write": "auth != null"
+    },
+    "adminAuth": {
+      ".read": true,
+      ".write": "auth != null"
     }
   }
 }
-

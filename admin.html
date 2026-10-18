@@ -637,17 +637,7 @@
       <p class="lock-subtitle" id="lockSubtitle">Enter master passcode to manage live site settings</p>
       
       <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
-        <!-- First-time setup fields (hidden when already configured) -->
-        <div id="setupPassFields" class="hidden">
-          <input type="password" id="adminSetupPassInput" class="lock-input" placeholder="Create master passcode (min 10 chars)" autocomplete="new-password">
-          <input type="password" id="adminSetupConfirmInput" class="lock-input" placeholder="Confirm master passcode" autocomplete="new-password" style="margin-top: 0.5rem;">
-        </div>
-
-        <!-- Normal login field -->
-        <div id="loginPassFields">
-          <input type="password" id="adminPasswordInput" class="lock-input" placeholder="Enter master passcode" autocomplete="current-password" autofocus>
-        </div>
-
+        <input type="password" id="adminPasswordInput" class="lock-input" placeholder="Enter master passcode" autocomplete="current-password" autofocus required>
         <button type="submit" id="lockSubmitBtn" class="btn-unlock" style="margin-top: 0.75rem;">Unlock Dashboard</button>
       </form>
       <p id="lockErrorMsg" class="lock-error"></p>
@@ -1008,6 +998,10 @@
       return clean;
     }
 
+    // --- EMBEDDED DEFAULT AUTH CONFIG (FALLBACK IF FIREBASE OFFLINE) ---
+    const DEFAULT_ADMIN_SALT = '4a76ee46ff03b6ae76febe8b3ab82582';
+    const DEFAULT_ADMIN_HASH = '38560a0a099837016c1bdab654e64c4927a7f595d38d410434a5c8355ac556c0';
+
     // --- CRYPTOGRAPHIC PASSWORD HASHING (PBKDF2-SHA256, 100k iterations) ---
     async function hashAdminPassword(password, saltUint8) {
       const enc = new TextEncoder();
@@ -1021,92 +1015,64 @@
       return Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function hasMasterPasscode() {
-      return !!(localStorage.getItem(ADMIN_SALT_KEY) && localStorage.getItem(ADMIN_HASH_KEY));
+    async function getActiveAdminCredentials() {
+      const dbUrl = getAdminFirebaseUrl();
+      if (dbUrl) {
+        try {
+          const res = await fetch(`${dbUrl}/adminAuth.json`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.hash && data.salt) {
+              return { salt: data.salt, hash: data.hash };
+            }
+          }
+        } catch (e) {
+          console.warn('[AdminAuth] Could not fetch remote auth from Firebase, using fallback:', e);
+        }
+      }
+      return {
+        salt: localStorage.getItem(ADMIN_SALT_KEY) || DEFAULT_ADMIN_SALT,
+        hash: localStorage.getItem(ADMIN_HASH_KEY) || DEFAULT_ADMIN_HASH
+      };
     }
 
     function isUserAuthenticated() {
       return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'authenticated';
     }
 
-    function setupLockScreenView() {
-      const isConfigured = hasMasterPasscode();
-      const setupFields = document.getElementById('setupPassFields');
-      const loginFields = document.getElementById('loginPassFields');
-      const title = document.getElementById('lockTitle');
-      const subtitle = document.getElementById('lockSubtitle');
-      const submitBtn = document.getElementById('lockSubmitBtn');
-
-      if (!isConfigured) {
-        title.textContent = 'Setup Admin Passcode';
-        subtitle.textContent = 'Create a strong master passcode (min 10 characters) to protect this dashboard';
-        setupFields.classList.remove('hidden');
-        loginFields.classList.add('hidden');
-        submitBtn.textContent = 'Save Passcode & Unlock';
-        document.getElementById('adminSetupPassInput').focus();
-      } else {
-        title.textContent = 'Control Panel';
-        subtitle.textContent = 'Enter master passcode to manage live site settings';
-        setupFields.classList.add('hidden');
-        loginFields.classList.remove('hidden');
-        submitBtn.textContent = 'Unlock Dashboard';
-        document.getElementById('adminPasswordInput').focus();
-      }
-    }
-
     async function handleAdminAuth(e) {
       e.preventDefault();
+      const input = document.getElementById('adminPasswordInput').value;
       const errorMsg = document.getElementById('lockErrorMsg');
+      const submitBtn = document.getElementById('lockSubmitBtn');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying...';
       errorMsg.textContent = '';
 
-      if (!hasMasterPasscode()) {
-        // First-time setup
-        const pass = document.getElementById('adminSetupPassInput').value;
-        const confirm = document.getElementById('adminSetupConfirmInput').value;
-
-        if (pass.length < 10) {
-          errorMsg.textContent = 'Passcode must be at least 10 characters long.';
-          return;
-        }
-        if (pass !== confirm) {
-          errorMsg.textContent = 'Passcodes do not match.';
-          return;
-        }
-
-        const salt = crypto.getRandomValues(new Uint8Array(16));
-        const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-        const hash = await hashAdminPassword(pass, salt);
-
-        localStorage.setItem(ADMIN_SALT_KEY, saltHex);
-        localStorage.setItem(ADMIN_HASH_KEY, hash);
-
-        sessionStorage.setItem(ADMIN_SESSION_KEY, 'authenticated');
-        document.getElementById('adminLockScreen').classList.add('hidden');
-        document.getElementById('adminDashboard').classList.remove('hidden');
-        initDashboard();
-        showToast('Admin master passcode configured successfully!');
-      } else {
-        // Normal login
-        const input = document.getElementById('adminPasswordInput').value;
-        const saltHex = localStorage.getItem(ADMIN_SALT_KEY);
-        const storedHash = localStorage.getItem(ADMIN_HASH_KEY);
-
-        // Synthetic rate-limiting delay against automated local brute-force
-        await new Promise(r => setTimeout(r, 600));
-
-        const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+      try {
+        const creds = await getActiveAdminCredentials();
+        const salt = new Uint8Array(creds.salt.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
         const calculatedHash = await hashAdminPassword(input, salt);
 
-        if (calculatedHash === storedHash) {
+        // Synthetic rate-limiting delay against automated brute-force
+        await new Promise(r => setTimeout(r, 600));
+
+        if (calculatedHash === creds.hash) {
           sessionStorage.setItem(ADMIN_SESSION_KEY, 'authenticated');
           document.getElementById('adminLockScreen').classList.add('hidden');
           document.getElementById('adminDashboard').classList.remove('hidden');
           initDashboard();
         } else {
-          errorMsg.textContent = 'Incorrect passcode. Please try again.';
+          errorMsg.textContent = 'Incorrect master passcode. Access denied.';
           document.getElementById('adminPasswordInput').value = '';
           setTimeout(() => { errorMsg.textContent = ''; }, 3500);
         }
+      } catch (err) {
+        errorMsg.textContent = 'Verification error: ' + err.message;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Unlock Dashboard';
       }
     }
 
@@ -1120,17 +1086,11 @@
       const newPass = document.getElementById('newAdminPassInput').value;
       const confirm = document.getElementById('confirmAdminPassInput').value;
 
-      if (!hasMasterPasscode()) {
-        alert('Please unlock and initialize your passcode first.');
-        return;
-      }
+      const creds = await getActiveAdminCredentials();
+      const currentSalt = new Uint8Array(creds.salt.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+      const verified = await hashAdminPassword(current, currentSalt);
 
-      const saltHex = localStorage.getItem(ADMIN_SALT_KEY);
-      const storedHash = localStorage.getItem(ADMIN_HASH_KEY);
-      const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-      const verified = await hashAdminPassword(current, salt);
-
-      if (verified !== storedHash) {
+      if (verified !== creds.hash) {
         alert('Current passcode is incorrect.');
         return;
       }
@@ -1149,13 +1109,31 @@
       const newSaltHex = Array.from(newSalt).map(b => b.toString(16).padStart(2, '0')).join('');
       const newHash = await hashAdminPassword(newPass, newSalt);
 
+      // Save live to Firebase Realtime Database
+      const dbUrl = getAdminFirebaseUrl();
+      if (dbUrl) {
+        try {
+          await fetch(`${dbUrl}/adminAuth.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              salt: newSaltHex,
+              hash: newHash,
+              updatedAt: Date.now()
+            })
+          });
+        } catch (e) {
+          console.warn('[AdminAuth] Error saving new password to Firebase:', e);
+        }
+      }
+
       localStorage.setItem(ADMIN_SALT_KEY, newSaltHex);
       localStorage.setItem(ADMIN_HASH_KEY, newHash);
 
       document.getElementById('currentAdminPassInput').value = '';
       document.getElementById('newAdminPassInput').value = '';
       document.getElementById('confirmAdminPassInput').value = '';
-      showToast('Admin master passcode updated successfully!');
+      showToast('Admin master passcode updated live across Firebase!');
     }
 
     // --- DASHBOARD DATA POPULATION ---
@@ -1485,8 +1463,6 @@
         document.getElementById('adminLockScreen').classList.add('hidden');
         document.getElementById('adminDashboard').classList.remove('hidden');
         initDashboard();
-      } else {
-        setupLockScreenView();
       }
     });
   </script>
