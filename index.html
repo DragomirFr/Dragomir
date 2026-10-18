@@ -803,32 +803,15 @@
             <button type="button" class="btn-disconnect hidden" id="disconnectBtn" onclick="disconnectSpotify()">Disconnect</button>
           </div>
 
-          <!-- Public Broadcast Section: Shows when Spotify account is connected -->
+          <!-- Secure Connection Notice -->
           <div id="publicBroadcastSection" class="public-broadcast-box hidden">
             <div class="public-broadcast-header">
-              <span class="broadcast-badge">Public Visitor Sync</span>
-              <span class="broadcast-status-tag" id="broadcastStatusTag">Local Only</span>
+              <span class="broadcast-badge" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">Secure Session</span>
+              <span class="broadcast-status-tag" id="broadcastStatusTag">PKCE Protected</span>
             </div>
             <p class="broadcast-desc">
-              Save your authorization once to your website file. Any visitor will then see your live Spotify track without needing to log in.
+              Your Spotify session is secured locally via PKCE in your browser. Refresh tokens are never exposed in public files or client bundles.
             </p>
-            <div class="broadcast-actions">
-              <button type="button" class="btn-broadcast-primary" onclick="savePublicConfigToFile()">
-                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                <span>Save to index.html (Live for Everyone)</span>
-              </button>
-              <button type="button" class="btn-broadcast-secondary" id="btnCopySnippet" onclick="copyPublicConfigSnippet()">
-                Copy Config Snippet
-              </button>
-            </div>
-            <div style="margin-top: 0.35rem;">
-              <span style="font-size: 0.7rem; color: var(--text-subtle); display: block; margin-bottom: 0.25rem;">Authorized Refresh Token:</span>
-              <div class="token-preview-box" id="tokenPreviewDisplay">...</div>
-            </div>
           </div>
 
           <div id="connectFormFields">
@@ -880,12 +863,12 @@
     </div>
   </div>
 
-  <!-- Public Spotify Configuration (Allows all visitors to view live playback without logging in) -->
+  <!-- Public Spotify Configuration -->
   <script id="spotifyPublicConfig" type="application/json">
   {
     "enabled": false,
     "clientId": "",
-    "refreshToken": ""
+    "demoMode": false
   }
   </script>
 
@@ -914,12 +897,11 @@
       } catch (e) {
         console.warn('Could not parse public Spotify config:', e);
       }
-      return { enabled: false, clientId: '', refreshToken: '' };
+      return { enabled: false, clientId: '', demoMode: false };
     }
 
     function getSettings() {
       const pub = getPublicConfig();
-      const hasPublicConfig = !!(pub && pub.enabled && pub.clientId && pub.refreshToken);
 
       let local = {};
       try {
@@ -927,14 +909,12 @@
         if (raw) local = JSON.parse(raw);
       } catch (e) {}
 
-      // If user explicitly configured locally, respect local toggle;
-      // otherwise, if public config is active in index.html, enable automatically for all visitors!
       const isEnabled = local.spotifyEnabled !== undefined 
         ? local.spotifyEnabled 
-        : (hasPublicConfig ? true : false);
+        : (pub.enabled !== undefined ? pub.enabled : false);
 
       const clientId = local.clientId || pub.clientId || '';
-      const refreshToken = local.refreshToken || pub.refreshToken || null;
+      const refreshToken = local.refreshToken || null;
       const accessToken = local.accessToken || sessionStorage.getItem('spotify_access_token') || null;
       const expiresAt = local.expiresAt || parseInt(sessionStorage.getItem('spotify_expires_at') || '0', 10);
 
@@ -944,8 +924,7 @@
         accessToken: accessToken,
         refreshToken: refreshToken,
         expiresAt: expiresAt,
-        demoMode: local.demoMode !== undefined ? local.demoMode : false,
-        hasPublicConfig: hasPublicConfig,
+        demoMode: local.demoMode !== undefined ? local.demoMode : (pub.demoMode || false),
         isLocallyConnected: !!(local.refreshToken)
       };
     }
@@ -1123,95 +1102,7 @@
       return await tokenRefreshPromise;
     }
 
-    async function savePublicConfigToFile() {
-      const settings = getSettings();
-      if (!settings.clientId || !settings.refreshToken) {
-        alert('Please connect your Spotify account first.');
-        return;
-      }
-
-      const updatedConfig = {
-        enabled: true,
-        clientId: settings.clientId,
-        refreshToken: settings.refreshToken
-      };
-      const configJson = JSON.stringify(updatedConfig, null, 2);
-
-      let fileText = '';
-      try {
-        const res = await fetch(window.location.href);
-        if (res.ok) {
-          fileText = await res.text();
-        }
-      } catch (e) {}
-
-      if (!fileText || !fileText.includes('spotifyPublicConfig')) {
-        fileText = document.documentElement.outerHTML;
-        if (!fileText.startsWith('<!DOCTYPE html>')) {
-          fileText = '<!DOCTYPE html>\n' + fileText;
-        }
-      }
-
-      const configRegex = /<script id="spotifyPublicConfig" type="application\/json">[\s\S]*?<\/script>/i;
-      const replacement = `<script id="spotifyPublicConfig" type="application/json">\n${configJson}\n  <\/script>`;
-
-      const newHtml = fileText.replace(configRegex, replacement);
-
-      // Try modern File System Access API
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: 'index.html',
-            types: [{
-              description: 'HTML File',
-              accept: { 'text/html': ['.html'] }
-            }]
-          });
-          const writable = await handle.createWritable();
-          await writable.write(newHtml);
-          await writable.close();
-          alert('Updated index.html successfully! Your live Spotify status will now show for everyone who visits.');
-          location.reload();
-          return;
-        } catch (err) {
-          if (err.name === 'AbortError') return;
-          console.warn('FilePicker error, falling back to download:', err);
-        }
-      }
-
-      // Fallback: trigger download of the updated index.html
-      const blob = new Blob([newHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'index.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      alert('Downloaded updated index.html! Replace your current index.html with this file so all visitors can see your song.');
-    }
-
-    function copyPublicConfigSnippet() {
-      const settings = getSettings();
-      if (!settings.clientId || !settings.refreshToken) {
-        alert('Please connect your Spotify account first.');
-        return;
-      }
-      const snippet = `<script id="spotifyPublicConfig" type="application/json">\n{\n  "enabled": true,\n  "clientId": "${settings.clientId}",\n  "refreshToken": "${settings.refreshToken}"\n}\n<\/script>`;
-      navigator.clipboard.writeText(snippet).then(() => {
-        const btn = document.getElementById('btnCopySnippet');
-        if (btn) {
-          const original = btn.textContent;
-          btn.textContent = 'Copied Snippet!';
-          btn.style.color = '#22c55e';
-          setTimeout(() => {
-            btn.textContent = original;
-            btn.style.color = '';
-          }, 2000);
-        }
-      });
-    }
+    // Token safety: Spotify OAuth refresh tokens are stored exclusively in the client's local storage and never written to static files or exposed publicly.
 
     function disconnectSpotify() {
       const settings = getSettings();
@@ -1334,26 +1225,16 @@
       const connectFields = document.getElementById('connectFormFields');
       const broadcastSection = document.getElementById('publicBroadcastSection');
       const broadcastStatusTag = document.getElementById('broadcastStatusTag');
-      const tokenPreview = document.getElementById('tokenPreviewDisplay');
 
       if (isConnected) {
         statusDot.className = 'status-dot-green';
-        statusText.textContent = settings.hasPublicConfig ? 'Connected & Live Publicly' : 'Connected to Spotify';
+        statusText.textContent = 'Connected (Secure Session)';
         disconnectBtn.classList.remove('hidden');
         connectFields.classList.add('hidden');
         broadcastSection.classList.remove('hidden');
-
-        if (settings.hasPublicConfig) {
-          broadcastStatusTag.textContent = '✓ Live for Everyone';
+        if (broadcastStatusTag) {
+          broadcastStatusTag.textContent = 'Active (Protected)';
           broadcastStatusTag.style.color = 'var(--spotify-green)';
-        } else {
-          broadcastStatusTag.textContent = 'Local Only (Click Save below)';
-          broadcastStatusTag.style.color = '#f59e0b';
-        }
-
-        if (tokenPreview && settings.refreshToken) {
-          tokenPreview.textContent = settings.refreshToken.substring(0, 16) + '... (Valid)';
-          tokenPreview.title = settings.refreshToken;
         }
       } else {
         statusDot.className = 'status-dot-gray';

@@ -13,7 +13,6 @@
   "spotify": {
     "enabled": false,
     "clientId": "",
-    "refreshToken": "",
     "demoMode": false
   },
   "socials": {

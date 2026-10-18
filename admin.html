@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard — Dragomir</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
     *, *::before, *::after {
       margin: 0;
@@ -631,14 +633,24 @@
   <div id="adminLockScreen" class="lock-overlay">
     <div class="lock-card">
       <span class="lock-badge">Admin Access</span>
-      <h2 class="lock-title">Control Panel</h2>
-      <p class="lock-subtitle">Enter master passcode to manage live site settings</p>
-      <form onsubmit="handleAdminLogin(event)">
-        <input type="password" id="adminPasswordInput" class="lock-input" placeholder="Enter password (default: dragomir)" autocomplete="current-password" autofocus>
-        <button type="submit" class="btn-unlock">Unlock Dashboard</button>
+      <h2 class="lock-title" id="lockTitle">Control Panel</h2>
+      <p class="lock-subtitle" id="lockSubtitle">Enter master passcode to manage live site settings</p>
+      
+      <form id="adminAuthForm" onsubmit="handleAdminAuth(event)">
+        <!-- First-time setup fields (hidden when already configured) -->
+        <div id="setupPassFields" class="hidden">
+          <input type="password" id="adminSetupPassInput" class="lock-input" placeholder="Create master passcode (min 10 chars)" autocomplete="new-password">
+          <input type="password" id="adminSetupConfirmInput" class="lock-input" placeholder="Confirm master passcode" autocomplete="new-password" style="margin-top: 0.5rem;">
+        </div>
+
+        <!-- Normal login field -->
+        <div id="loginPassFields">
+          <input type="password" id="adminPasswordInput" class="lock-input" placeholder="Enter master passcode" autocomplete="current-password" autofocus>
+        </div>
+
+        <button type="submit" id="lockSubmitBtn" class="btn-unlock" style="margin-top: 0.75rem;">Unlock Dashboard</button>
       </form>
       <p id="lockErrorMsg" class="lock-error"></p>
-      <p style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 0.5rem;">Default password is <code style="color:var(--text-muted);">dragomir</code></p>
     </div>
   </div>
 
@@ -701,13 +713,12 @@
         <button type="button" class="header-btn" style="background:#ffffff; color:#000000; font-weight:700;" onclick="saveFirebaseCredentials()">Save & Connect</button>
         <button type="button" class="header-btn" onclick="toggleFirebaseConfigCard()">Cancel</button>
       </div>
-      <p style="font-size: 0.75rem; color: var(--text-subtle); margin-top: 1rem; line-height: 1.5;">
-        <strong>Quick 60-Second Setup:</strong><br>
-        1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#ffffff; text-decoration:underline;">console.firebase.google.com</a> and create a free project.<br>
-        2. Click <em>Build &rarr; Realtime Database &rarr; Create Database</em>.<br>
-        3. Under <em>Rules</em>, set <code>".read": true</code> and <code>".write": true</code>.<br>
-        4. Copy the Database URL shown at the top and paste it into the field above!
-      </p>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem; line-height: 1.5; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.85rem;">
+        <strong style="color: #ffffff;">Database Security Recommendation:</strong><br>
+        To prevent public unauthorized defacement, set your Firebase Realtime Database rules in Firebase Console to:<br>
+        <code style="display:block; background:#000000; color:#22c55e; padding:0.4rem 0.6rem; border-radius:6px; margin:0.4rem 0; font-family:var(--font-mono); font-size:0.72rem;">{ "rules": { "siteConfig": { ".read": true, ".write": "auth != null" } } }</code>
+        <span>Rules are also saved in your project root as <code>database.rules.json</code>.</span>
+      </div>
     </div>
 
     <!-- Controls Grid -->
@@ -829,13 +840,9 @@
         </div>
 
         <div class="form-row" style="margin-top: 0.85rem;">
-          <div class="form-group">
+          <div class="form-group" style="width: 100%;">
             <label class="form-label" for="spotifyClientIdInput">Spotify Client ID</label>
             <input type="text" id="spotifyClientIdInput" class="form-input" placeholder="Paste your Spotify Client ID">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="spotifyRefreshTokenInput">Spotify Refresh Token</label>
-            <input type="password" id="spotifyRefreshTokenInput" class="form-input" placeholder="Paste your Spotify Refresh Token">
           </div>
         </div>
 
@@ -924,18 +931,28 @@
       <div class="control-card">
         <div class="card-header">
           <div class="card-title-group">
-            <h2>Admin Passcode</h2>
-            <p>Change your admin password to protect access to this dashboard</p>
+            <h2>Admin Master Passcode</h2>
+            <p>Update your master passcode (PBKDF2-HMAC-SHA256 salted hash)</p>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
+            <label class="form-label" for="currentAdminPassInput">Current Master Passcode</label>
+            <input type="password" id="currentAdminPassInput" class="form-input" placeholder="Enter current passcode" autocomplete="current-password">
+          </div>
+          <div class="form-group">
             <label class="form-label" for="newAdminPassInput">New Master Passcode</label>
-            <input type="password" id="newAdminPassInput" class="form-input" placeholder="Enter new password">
+            <input type="password" id="newAdminPassInput" class="form-input" placeholder="Min 10 characters" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="form-row" style="margin-top: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label" for="confirmAdminPassInput">Confirm New Passcode</label>
+            <input type="password" id="confirmAdminPassInput" class="form-input" placeholder="Re-enter new passcode" autocomplete="new-password">
           </div>
           <div class="form-group" style="display:flex; align-items:flex-end;">
-            <button type="button" class="header-btn" style="width:100%; padding:0.7rem; justify-content:center;" onclick="changeAdminPassword()">Update Password</button>
+            <button type="button" class="header-btn" style="width:100%; padding:0.7rem; justify-content:center;" onclick="changeAdminPassword()">Update Passcode</button>
           </div>
         </div>
       </div>
@@ -962,8 +979,8 @@
   <script>
     // --- CONSTANTS & DEFAULTS ---
     const ADMIN_SESSION_KEY = 'dragomir_admin_auth_session';
-    const ADMIN_PASSWORD_KEY = 'dragomir_admin_password_hash';
-    const DEFAULT_PASS_HASH = 'dragomir';
+    const ADMIN_SALT_KEY = 'dragomir_admin_salt';
+    const ADMIN_HASH_KEY = 'dragomir_admin_pwhash';
     const DEFAULT_FIREBASE_URL = 'https://admin-dragomir-default-rtdb.europe-west1.firebasedatabase.app';
 
     let selectedAccentColor = '#7877c6';
@@ -991,26 +1008,105 @@
       return clean;
     }
 
-    // --- AUTHENTICATION ---
+    // --- CRYPTOGRAPHIC PASSWORD HASHING (PBKDF2-SHA256, 100k iterations) ---
+    async function hashAdminPassword(password, saltUint8) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']
+      );
+      const derivedBits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: saltUint8, iterations: 100000, hash: 'SHA-256' },
+        keyMaterial, 256
+      );
+      return Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function hasMasterPasscode() {
+      return !!(localStorage.getItem(ADMIN_SALT_KEY) && localStorage.getItem(ADMIN_HASH_KEY));
+    }
+
     function isUserAuthenticated() {
       return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'authenticated';
     }
 
-    function handleAdminLogin(e) {
-      e.preventDefault();
-      const input = document.getElementById('adminPasswordInput').value;
-      const errorMsg = document.getElementById('lockErrorMsg');
-      const storedPass = localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_PASS_HASH;
+    function setupLockScreenView() {
+      const isConfigured = hasMasterPasscode();
+      const setupFields = document.getElementById('setupPassFields');
+      const loginFields = document.getElementById('loginPassFields');
+      const title = document.getElementById('lockTitle');
+      const subtitle = document.getElementById('lockSubtitle');
+      const submitBtn = document.getElementById('lockSubmitBtn');
 
-      if (input === storedPass) {
+      if (!isConfigured) {
+        title.textContent = 'Setup Admin Passcode';
+        subtitle.textContent = 'Create a strong master passcode (min 10 characters) to protect this dashboard';
+        setupFields.classList.remove('hidden');
+        loginFields.classList.add('hidden');
+        submitBtn.textContent = 'Save Passcode & Unlock';
+        document.getElementById('adminSetupPassInput').focus();
+      } else {
+        title.textContent = 'Control Panel';
+        subtitle.textContent = 'Enter master passcode to manage live site settings';
+        setupFields.classList.add('hidden');
+        loginFields.classList.remove('hidden');
+        submitBtn.textContent = 'Unlock Dashboard';
+        document.getElementById('adminPasswordInput').focus();
+      }
+    }
+
+    async function handleAdminAuth(e) {
+      e.preventDefault();
+      const errorMsg = document.getElementById('lockErrorMsg');
+      errorMsg.textContent = '';
+
+      if (!hasMasterPasscode()) {
+        // First-time setup
+        const pass = document.getElementById('adminSetupPassInput').value;
+        const confirm = document.getElementById('adminSetupConfirmInput').value;
+
+        if (pass.length < 10) {
+          errorMsg.textContent = 'Passcode must be at least 10 characters long.';
+          return;
+        }
+        if (pass !== confirm) {
+          errorMsg.textContent = 'Passcodes do not match.';
+          return;
+        }
+
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+        const hash = await hashAdminPassword(pass, salt);
+
+        localStorage.setItem(ADMIN_SALT_KEY, saltHex);
+        localStorage.setItem(ADMIN_HASH_KEY, hash);
+
         sessionStorage.setItem(ADMIN_SESSION_KEY, 'authenticated');
         document.getElementById('adminLockScreen').classList.add('hidden');
         document.getElementById('adminDashboard').classList.remove('hidden');
         initDashboard();
+        showToast('Admin master passcode configured successfully!');
       } else {
-        errorMsg.textContent = 'Incorrect password. Try again.';
-        document.getElementById('adminPasswordInput').value = '';
-        setTimeout(() => { errorMsg.textContent = ''; }, 3000);
+        // Normal login
+        const input = document.getElementById('adminPasswordInput').value;
+        const saltHex = localStorage.getItem(ADMIN_SALT_KEY);
+        const storedHash = localStorage.getItem(ADMIN_HASH_KEY);
+
+        // Synthetic rate-limiting delay against automated local brute-force
+        await new Promise(r => setTimeout(r, 600));
+
+        const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        const calculatedHash = await hashAdminPassword(input, salt);
+
+        if (calculatedHash === storedHash) {
+          sessionStorage.setItem(ADMIN_SESSION_KEY, 'authenticated');
+          document.getElementById('adminLockScreen').classList.add('hidden');
+          document.getElementById('adminDashboard').classList.remove('hidden');
+          initDashboard();
+        } else {
+          errorMsg.textContent = 'Incorrect passcode. Please try again.';
+          document.getElementById('adminPasswordInput').value = '';
+          setTimeout(() => { errorMsg.textContent = ''; }, 3500);
+        }
       }
     }
 
@@ -1019,15 +1115,47 @@
       location.reload();
     }
 
-    function changeAdminPassword() {
-      const newPass = document.getElementById('newAdminPassInput').value.trim();
-      if (!newPass) {
-        alert('Please enter a new password.');
+    async function changeAdminPassword() {
+      const current = document.getElementById('currentAdminPassInput').value;
+      const newPass = document.getElementById('newAdminPassInput').value;
+      const confirm = document.getElementById('confirmAdminPassInput').value;
+
+      if (!hasMasterPasscode()) {
+        alert('Please unlock and initialize your passcode first.');
         return;
       }
-      localStorage.setItem(ADMIN_PASSWORD_KEY, newPass);
+
+      const saltHex = localStorage.getItem(ADMIN_SALT_KEY);
+      const storedHash = localStorage.getItem(ADMIN_HASH_KEY);
+      const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+      const verified = await hashAdminPassword(current, salt);
+
+      if (verified !== storedHash) {
+        alert('Current passcode is incorrect.');
+        return;
+      }
+
+      if (newPass.length < 10) {
+        alert('New passcode must be at least 10 characters long.');
+        return;
+      }
+
+      if (newPass !== confirm) {
+        alert('New passcodes do not match.');
+        return;
+      }
+
+      const newSalt = crypto.getRandomValues(new Uint8Array(16));
+      const newSaltHex = Array.from(newSalt).map(b => b.toString(16).padStart(2, '0')).join('');
+      const newHash = await hashAdminPassword(newPass, newSalt);
+
+      localStorage.setItem(ADMIN_SALT_KEY, newSaltHex);
+      localStorage.setItem(ADMIN_HASH_KEY, newHash);
+
+      document.getElementById('currentAdminPassInput').value = '';
       document.getElementById('newAdminPassInput').value = '';
-      showToast('Admin password updated successfully!');
+      document.getElementById('confirmAdminPassInput').value = '';
+      showToast('Admin master passcode updated successfully!');
     }
 
     // --- DASHBOARD DATA POPULATION ---
@@ -1048,7 +1176,6 @@
       // Spotify
       document.getElementById('spotifyEnabledToggle').checked = !!cfg.spotify?.enabled;
       document.getElementById('spotifyClientIdInput').value = cfg.spotify?.clientId || '';
-      document.getElementById('spotifyRefreshTokenInput').value = cfg.spotify?.refreshToken || '';
       document.getElementById('spotifyDemoToggle').checked = !!cfg.spotify?.demoMode;
 
       // Pages
@@ -1241,7 +1368,6 @@
         spotify: {
           enabled: document.getElementById('spotifyEnabledToggle').checked,
           clientId: document.getElementById('spotifyClientIdInput').value.trim(),
-          refreshToken: document.getElementById('spotifyRefreshTokenInput').value.trim(),
           demoMode: document.getElementById('spotifyDemoToggle').checked
         },
         pages: {
@@ -1359,6 +1485,8 @@
         document.getElementById('adminLockScreen').classList.add('hidden');
         document.getElementById('adminDashboard').classList.remove('hidden');
         initDashboard();
+      } else {
+        setupLockScreenView();
       }
     });
   </script>

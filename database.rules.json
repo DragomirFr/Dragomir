@@ -1,0 +1,9 @@
+{
+  "rules": {
+    "siteConfig": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}
+

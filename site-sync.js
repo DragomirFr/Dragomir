@@ -25,7 +25,6 @@
     spotify: {
       enabled: false,
       clientId: "",
-      refreshToken: "",
       demoMode: false
     },
     socials: {
@@ -275,7 +274,7 @@
         const spotifyPub = {
           enabled: !!config.spotify.enabled,
           clientId: config.spotify.clientId || "",
-          refreshToken: config.spotify.refreshToken || ""
+          demoMode: !!config.spotify.demoMode
         };
         publicEl.textContent = JSON.stringify(spotifyPub, null, 2);
       }

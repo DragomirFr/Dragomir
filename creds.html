@@ -349,6 +349,49 @@
       color: #ffffff;
     }
 
+    .strength-meter-wrap {
+      margin-top: 0.5rem;
+    }
+
+    .strength-bar-bg {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 0.35rem;
+    }
+
+    .strength-bar-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease, background-color 0.3s ease;
+      border-radius: 9999px;
+    }
+
+    .strength-text {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .security-notice-card {
+      margin-top: 1.25rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+    }
+
+    .security-notice-card strong {
+      color: #ffffff;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
     .hidden {
       display: none !important;
     }
@@ -382,6 +425,11 @@
 
       <div style="margin-top: 1.5rem; text-align: center;">
         <button type="button" class="text-link" onclick="switchToSetup()">Change details or reset vault</button>
+      </div>
+
+      <div class="security-notice-card">
+        <strong>Zero-Knowledge Client-Side Vault</strong>
+        Encrypted locally in your browser using AES-GCM-256 with 600,000 PBKDF2 iterations. Decryption happens on your device; security against offline dictionary attacks relies strictly on having a strong master password.
       </div>
     </div>
 
@@ -475,13 +523,22 @@
         </div>
 
         <div class="field-group">
-          <label for="setupPassword">Master Password</label>
-          <input type="password" id="setupPassword" placeholder="Choose a strong master password" required minlength="4">
+          <label for="setupPassword">Master Password (Min 12 Characters)</label>
+          <input type="password" id="setupPassword" placeholder="Minimum 12 chars (mixed case, numbers, symbols)" required minlength="12" oninput="updatePasswordStrength()">
+          <div class="strength-meter-wrap" id="strengthMeterWrap">
+            <div class="strength-bar-bg">
+              <div class="strength-bar-fill" id="strengthBarFill"></div>
+            </div>
+            <div class="strength-text">
+              <span id="strengthLabel">Enter password to check strength</span>
+              <span id="strengthHint">Min 12 chars</span>
+            </div>
+          </div>
         </div>
 
         <div class="field-group">
           <label for="setupConfirmPassword">Confirm Master Password</label>
-          <input type="password" id="setupConfirmPassword" placeholder="Confirm your password" required minlength="4">
+          <input type="password" id="setupConfirmPassword" placeholder="Confirm your password" required minlength="12">
         </div>
 
         <button type="submit" class="btn btn-primary" id="saveVaultBtn">
@@ -492,6 +549,11 @@
         </button>
         <div class="error-msg" id="setupError"></div>
       </form>
+
+      <div class="security-notice-card">
+        <strong>Zero-Knowledge Security Advice</strong>
+        Use a high-entropy passphrase or at least 12 random characters. Your encrypted data cannot be recovered if you forget your master password.
+      </div>
     </div>
 
   </div>
@@ -514,99 +576,81 @@
     let timeLeft = 120; // 2 minutes
     let lockoutCountdownTimer = null;
 
-    // --- LOCKOUT SYSTEM (24-hour ban after 5 failed attempts) ---
-    const MAX_ATTEMPTS = 5;
-    const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
-    const LOCKOUT_STORAGE_KEY = "vault_lockout";
+    // --- CRYPTOGRAPHIC ZERO-KNOWLEDGE STATE & PROGRESSIVE THROTTLING ---
+    const PBKDF2_ITERATIONS = 600000; // OWASP recommendation for PBKDF2-HMAC-SHA256
+    let inMemoryFailedAttempts = 0;
+    let throttleCooldownTimer = null;
 
-    function getLockoutState() {
-      try {
-        const raw = localStorage.getItem(LOCKOUT_STORAGE_KEY);
-        if (!raw) return { attempts: 0, lockedUntil: null };
-        return JSON.parse(raw);
-      } catch (e) {
-        return { attempts: 0, lockedUntil: null };
-      }
+    function getThrottleDelayMs(attempts) {
+      if (attempts <= 0) return 0;
+      if (attempts === 1) return 1500;
+      if (attempts === 2) return 3000;
+      if (attempts === 3) return 6000;
+      if (attempts === 4) return 12000;
+      return 25000; // max 25s delay between tries
     }
 
-    function saveLockoutState(state) {
-      localStorage.setItem(LOCKOUT_STORAGE_KEY, JSON.stringify(state));
-    }
-
-    function clearLockout() {
-      localStorage.removeItem(LOCKOUT_STORAGE_KEY);
-    }
-
-    function isLockedOut() {
-      const state = getLockoutState();
-      if (state.lockedUntil && Date.now() < state.lockedUntil) {
-        return true;
-      }
-      // If lockout expired, reset
-      if (state.lockedUntil && Date.now() >= state.lockedUntil) {
-        clearLockout();
-      }
-      return false;
-    }
-
-    function getRemainingLockoutMs() {
-      const state = getLockoutState();
-      if (!state.lockedUntil) return 0;
-      return Math.max(0, state.lockedUntil - Date.now());
-    }
-
-    function recordFailedAttempt() {
-      const state = getLockoutState();
-      state.attempts = (state.attempts || 0) + 1;
-      if (state.attempts >= MAX_ATTEMPTS) {
-        state.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
-      }
-      saveLockoutState(state);
-      return state;
-    }
-
-    function formatLockoutTime(ms) {
-      const totalSec = Math.ceil(ms / 1000);
-      const hrs = Math.floor(totalSec / 3600);
-      const mins = Math.floor((totalSec % 3600) / 60);
-      const secs = totalSec % 60;
-      return `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-    }
-
-    function showLockoutScreen() {
-      const errorEl = document.getElementById("unlockError");
+    function applyThrottleCooldown(delayMs) {
       const btn = document.getElementById("unlockBtn");
       const passwordInput = document.getElementById("unlockPassword");
+      const errorEl = document.getElementById("unlockError");
 
       btn.disabled = true;
       passwordInput.disabled = true;
 
-      clearInterval(lockoutCountdownTimer);
-      lockoutCountdownTimer = setInterval(() => {
-        const remaining = getRemainingLockoutMs();
-        if (remaining <= 0) {
-          clearInterval(lockoutCountdownTimer);
-          clearLockout();
+      let remainingSec = Math.ceil(delayMs / 1000);
+      clearInterval(throttleCooldownTimer);
+
+      throttleCooldownTimer = setInterval(() => {
+        remainingSec--;
+        if (remainingSec <= 0) {
+          clearInterval(throttleCooldownTimer);
           btn.disabled = false;
           passwordInput.disabled = false;
-          errorEl.textContent = "Lockout expired. You may try again.";
-          errorEl.style.display = "block";
-          return;
+          passwordInput.focus();
+          errorEl.textContent = "Cooldown expired. You may try again.";
+        } else {
+          errorEl.innerHTML = `Incorrect password.<br>Rate-limiting active: please wait <strong>${remainingSec}s</strong> before retrying.`;
         }
-        const state = getLockoutState();
-        errorEl.innerHTML = `<strong>VAULT LOCKED</strong><br>Too many failed attempts (${MAX_ATTEMPTS}/${MAX_ATTEMPTS}).<br>Try again in: <strong>${formatLockoutTime(remaining)}</strong>`;
-        errorEl.style.display = "block";
       }, 1000);
 
-      // Fire immediately
-      const remaining = getRemainingLockoutMs();
-      const state = getLockoutState();
-      errorEl.innerHTML = `<strong>VAULT LOCKED</strong><br>Too many failed attempts (${MAX_ATTEMPTS}/${MAX_ATTEMPTS}).<br>Try again in: <strong>${formatLockoutTime(remaining)}</strong>`;
+      errorEl.innerHTML = `Incorrect password.<br>Rate-limiting active: please wait <strong>${remainingSec}s</strong> before retrying.`;
       errorEl.style.display = "block";
     }
 
+    // --- PASSWORD STRENGTH EVALUATOR ---
+    function checkPasswordEntropy(pass) {
+      let score = 0;
+      if (!pass) return { score: 0, label: "Empty", color: "#52525b" };
+      if (pass.length >= 12) score += 1;
+      if (pass.length >= 16) score += 1;
+      if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score += 1;
+      if (/[0-9]/.test(pass)) score += 1;
+      if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+
+      if (score <= 1) return { score: 1, label: "Very Weak (min 12 chars required)", color: "#ef4444" };
+      if (score === 2) return { score: 2, label: "Weak (add mixed case, numbers, symbols)", color: "#f97316" };
+      if (score === 3) return { score: 3, label: "Moderate", color: "#eab308" };
+      if (score === 4) return { score: 4, label: "Strong", color: "#22c55e" };
+      return { score: 5, label: "Excellent High Entropy", color: "#34d399" };
+    }
+
+    function updatePasswordStrength() {
+      const pass = document.getElementById("setupPassword").value;
+      const res = checkPasswordEntropy(pass);
+      const fill = document.getElementById("strengthBarFill");
+      const label = document.getElementById("strengthLabel");
+      if (!fill || !label) return;
+
+      const widthPct = (res.score / 5) * 100;
+      fill.style.width = widthPct + "%";
+      fill.style.backgroundColor = res.color;
+      label.textContent = res.label;
+      label.style.color = res.color;
+    }
+
     // --- CRYPTO FUNCTIONS (Web Crypto API: PBKDF2 + AES-GCM 256) ---
-    async function deriveKey(password, salt) {
+    async function deriveKey(password, salt, iterations = PBKDF2_ITERATIONS) {
       const enc = new TextEncoder();
       const keyMaterial = await window.crypto.subtle.importKey(
         "raw",
@@ -619,7 +663,7 @@
         {
           name: "PBKDF2",
           salt: salt,
-          iterations: 250000,
+          iterations: iterations,
           hash: "SHA-256"
         },
         keyMaterial,
@@ -632,7 +676,7 @@
     async function encryptData(dataObject, password) {
       const salt = window.crypto.getRandomValues(new Uint8Array(16));
       const iv = window.crypto.getRandomValues(new Uint8Array(12));
-      const key = await deriveKey(password, salt);
+      const key = await deriveKey(password, salt, PBKDF2_ITERATIONS);
       const encoded = new TextEncoder().encode(JSON.stringify(dataObject));
 
       const ciphertext = await window.crypto.subtle.encrypt(
@@ -644,6 +688,7 @@
       return {
         salt: Array.from(salt),
         iv: Array.from(iv),
+        iterations: PBKDF2_ITERATIONS,
         ciphertext: Array.from(new Uint8Array(ciphertext))
       };
     }
@@ -652,7 +697,8 @@
       const salt = new Uint8Array(encryptedPayload.salt);
       const iv = new Uint8Array(encryptedPayload.iv);
       const ciphertext = new Uint8Array(encryptedPayload.ciphertext);
-      const key = await deriveKey(password, salt);
+      const iterations = encryptedPayload.iterations || 250000; // backwards compatible with legacy vaults
+      const key = await deriveKey(password, salt, iterations);
 
       const decrypted = await window.crypto.subtle.decrypt(
         { name: "AES-GCM", iv: iv },
@@ -721,12 +767,6 @@
       const errorEl = document.getElementById("unlockError");
       const vault = getStoredVault();
 
-      // Check if locked out
-      if (isLockedOut()) {
-        showLockoutScreen();
-        return;
-      }
-
       if (!vault) {
         errorEl.textContent = "No vault found. Please set up your details first.";
         errorEl.style.display = "block";
@@ -736,31 +776,22 @@
 
       const btn = document.getElementById("unlockBtn");
       btn.disabled = true;
-      btn.innerHTML = "<span>Decrypting...</span>";
+      btn.innerHTML = "<span>Decrypting (PBKDF2 600,000)...</span>";
       errorEl.style.display = "none";
 
       try {
         decryptedData = await decryptData(vault, password);
-        // Success — clear all failed attempts
-        clearLockout();
+        // Success — clear throttle state
+        inMemoryFailedAttempts = 0;
+        clearInterval(throttleCooldownTimer);
         document.getElementById("unlockForm").reset();
         openVault();
       } catch (err) {
-        // Rate-limiting delay to mitigate fast brute-force attempts
-        await new Promise(r => setTimeout(r, 800));
-
-        const state = recordFailedAttempt();
-        const remaining = MAX_ATTEMPTS - state.attempts;
-
-        if (state.lockedUntil) {
-          // Just triggered the 24-hour lockout
-          showLockoutScreen();
-        } else {
-          errorEl.textContent = `Incorrect password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before 24-hour lockout.`;
-          errorEl.style.display = "block";
-        }
+        inMemoryFailedAttempts++;
+        const delayMs = getThrottleDelayMs(inMemoryFailedAttempts);
+        applyThrottleCooldown(delayMs);
       } finally {
-        if (!isLockedOut()) {
+        if (!throttleCooldownTimer) {
           btn.disabled = false;
         }
         btn.innerHTML = "<span>Unlock Details</span>";
@@ -883,9 +914,22 @@
         return;
       }
 
+      if (password.length < 12) {
+        errorEl.textContent = "Master password must be at least 12 characters long.";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      const entropy = checkPasswordEntropy(password);
+      if (entropy.score < 3) {
+        errorEl.textContent = "Password is too weak. Please mix uppercase, lowercase, numbers, and special symbols.";
+        errorEl.style.display = "block";
+        return;
+      }
+
       const saveBtn = document.getElementById("saveVaultBtn");
       saveBtn.disabled = true;
-      saveBtn.textContent = "Encrypting...";
+      saveBtn.textContent = "Encrypting (PBKDF2 600,000)...";
 
       try {
         const payload = await encryptData({ license, ref }, password);
@@ -927,7 +971,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("Encrypted file exported!");
+      showToast("Encrypted file exported! Security depends on your master password.");
     }
 
     // --- TOAST NOTIFICATIONS ---
@@ -948,10 +992,6 @@
         switchToSetup(false);
       } else {
         showView("unlockView");
-        // If currently locked out, immediately show lockout screen
-        if (isLockedOut()) {
-          showLockoutScreen();
-        }
       }
     });
   </script>
