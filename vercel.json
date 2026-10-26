@@ -9,6 +9,10 @@
       "destination": "/pp/index.html"
     },
     {
+      "source": "/client",
+      "destination": "/client/index.html"
+    },
+    {
       "source": "/spotify",
       "destination": "/spotify/index.html"
     },

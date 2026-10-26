@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dragomir Client</title>
+  <meta name="description" content="A clean PvP client for Minecraft 26.3.">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #09090b;
+      --card-bg: rgba(18, 18, 22, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-subtle: #52525b;
+      --accent: #7877c6;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.14), transparent),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02), transparent 70%);
+      background-repeat: no-repeat;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .pill:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: var(--border-hover);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 4rem 0 3rem;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .hero-logo {
+      width: 88px;
+      height: auto;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 10px 30px rgba(120, 119, 198, 0.35));
+    }
+
+    h1 {
+      font-size: clamp(2.75rem, 8vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      line-height: 1;
+      color: #ffffff;
+    }
+
+    .tagline {
+      margin: 1.25rem auto 0;
+      max-width: 34rem;
+      font-size: clamp(1rem, 2.2vw, 1.15rem);
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .hero-actions {
+      margin-top: 2.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 0.85rem 1.6rem;
+      border-radius: 9999px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .btn-primary:hover {
+      background: #e4e4e7;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--border-hover);
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .meta {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+    }
+
+    .meta span + span::before {
+      content: "·";
+      margin: 0 0.5rem;
+    }
+
+    /* Screenshots */
+    .shots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 5rem;
+    }
+
+    .shots figure {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+    }
+
+    .shots img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .shots figcaption {
+      position: absolute;
+      left: 0.75rem;
+      bottom: 0.75rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 9999px;
+      background: rgba(9, 9, 11, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 5rem;
+    }
+
+    .eyebrow {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+
+    h2 {
+      margin-top: 0.5rem;
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .section-lead {
+      margin-top: 0.75rem;
+      max-width: 36rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .features {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .card {
+      padding: 1.5rem;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .card p {
+      margin-top: 0.5rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    /* Install */
+    .install {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .steps {
+      list-style: none;
+      counter-reset: step;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 1rem;
+      padding: 1.1rem 1.25rem;
+      border-radius: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0;
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 9999px;
+      background: rgba(120, 119, 198, 0.16);
+      color: #c7c6f5;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .steps strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .steps a {
+      color: var(--text-main);
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.85em;
+      padding: 0.1rem 0.4rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    .reqs {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .reqs div {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.8rem 1.1rem;
+      font-size: 0.88rem;
+      background: var(--card-bg);
+    }
+
+    .reqs div + div {
+      border-top: 1px solid var(--border);
+    }
+
+    .reqs dt {
+      color: var(--text-muted);
+    }
+
+    .reqs dd {
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .keys {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    kbd {
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.1rem 0.45rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-hover);
+      border-bottom-width: 2px;
+      color: var(--text-main);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+    }
+
+    footer .wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 860px) {
+      .features {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .install {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding: 2.5rem 0 2.5rem;
+      }
+      .shots {
+        grid-template-columns: 1fr;
+      }
+      .features {
+        grid-template-columns: 1fr;
+      }
+      .btn {
+        width: 100%;
+      }
+      footer .wrap {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <nav class="topbar">
+      <a href="/" class="pill">&larr; Home</a>
+      <a href="#install" class="pill">How to install</a>
+    </nav>
+
+    <header class="hero">
+      <img src="/client/img/logo.png" alt="Dragomir logo" class="hero-logo" width="88" height="88">
+      <h1>Dragomir Client</h1>
+      <p class="tagline">A clean PvP client for Minecraft 26.3.</p>
+
+      <div class="hero-actions">
+        <a href="/client/dragomir-client-1.4.0.jar" download class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download v1.4.0
+        </a>
+        <a href="#install" class="btn btn-secondary">Install guide</a>
+      </div>
+      <p class="meta"><span>Fabric mod (.jar)</span><span>654 KB</span><span>Minecraft 26.3</span></p>
+    </header>
+
+    <div class="shots">
+      <figure>
+        <img src="/client/img/main-menu.jpg" alt="Dragomir main menu" loading="lazy">
+        <figcaption>Main menu</figcaption>
+      </figure>
+      <figure>
+        <img src="/client/img/mod-menu.jpg" alt="Dragomir mod menu with search" loading="lazy">
+        <figcaption>Mod menu</figcaption>
+      </figure>
+    </div>
+
+    <section id="features">
+      <p class="eyebrow">Features</p>
+      <h2>Everything in one menu</h2>
+      <p class="section-lead">Press <kbd>Right Shift</kbd> in game to open the mod menu. Every mod has its own settings and an optional toggle key.</p>
+
+      <div class="features">
+        <div class="card">
+          <h3>Draggable HUD</h3>
+          <p>FPS, CPS, coordinates, keystrokes, armour, potions, ping and more. Drag, resize, nudge with arrow keys, or reset to a clean layout.</p>
+        </div>
+        <div class="card">
+          <h3>Minimap &amp; world map</h3>
+          <p>Terrain minimap with players and mobs, plus a full world map (<kbd>M</kbd>) that remembers everywhere you've explored.</p>
+        </div>
+        <div class="card">
+          <h3>Waypoints</h3>
+          <p>On-screen markers with off-screen arrows, an automatic death waypoint, and one-key waypoints where you stand or look.</p>
+        </div>
+        <div class="card">
+          <h3>PvP tools</h3>
+          <p>Reach display, combo counter, CPS graph, hitboxes, hit colour, custom crosshair, nametag health and toggle sprint.</p>
+        </div>
+        <div class="card">
+          <h3>Zoom &amp; freelook</h3>
+          <p>Hold <kbd>C</kbd> to zoom and scroll to adjust. Hold <kbd>Left Alt</kbd> to look around without turning.</p>
+        </div>
+        <div class="card">
+          <h3>Spotify</h3>
+          <p>Now playing with album art on your HUD, and a pause-menu player with controls and volume (Windows).</p>
+        </div>
+        <div class="card">
+          <h3>Chat tweaks</h3>
+          <p>Timestamps, stacked duplicates, chat search, right-click to copy, mention highlights and phrase filters.</p>
+        </div>
+        <div class="card">
+          <h3>Render</h3>
+          <p>Fullbright, block outline, item physics, low fire, clear weather, time changer and no hurt cam.</p>
+        </div>
+        <div class="card">
+          <h3>Profiles &amp; themes</h3>
+          <p>Default, PvP, Building and Recording profiles, five HUD themes, and setup codes to share your config with friends.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="install">
+      <div>
+        <p class="eyebrow">Install</p>
+        <h2>Up and running in a minute</h2>
+        <p class="section-lead">Dragomir Client is a Fabric mod, so it runs in the normal Minecraft launcher.</p>
+
+        <dl class="reqs">
+          <div><dt>Minecraft</dt><dd>26.3</dd></div>
+          <div><dt>Fabric Loader</dt><dd>0.20.1 or newer</dd></div>
+          <div><dt>Fabric API</dt><dd>Required</dd></div>
+          <div><dt>Java</dt><dd>25 (bundled with the launcher)</dd></div>
+        </dl>
+      </div>
+
+      <ol class="steps">
+        <li><span>Install <strong>Fabric Loader</strong> for Minecraft 26.3 with the <a href="https://fabricmc.net/use/installer/" target="_blank" rel="noopener noreferrer">Fabric installer</a>.</span></li>
+        <li><span>Download <strong>Fabric API</strong> for 26.3 from <a href="https://modrinth.com/mod/fabric-api" target="_blank" rel="noopener noreferrer">Modrinth</a>.</span></li>
+        <li><span><a href="/client/dragomir-client-1.4.0.jar" download>Download Dragomir Client</a>, then put both jars in your mods folder: <code>%appdata%\.minecraft\mods</code></span></li>
+        <li><span>Open the Minecraft Launcher, pick the <strong>fabric-loader 26.3</strong> profile and press Play. Press <kbd>Right Shift</kbd> in game to open the mods.</span></li>
+      </ol>
+    </section>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <span>&copy; 2026 Dragomir. Not affiliated with Mojang or Microsoft.</span>
+      <a href="/" class="pill">Back to home</a>
+    </div>
+  </footer>
+
+</body>
+</html>
