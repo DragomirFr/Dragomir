@@ -29,7 +29,13 @@ const ADMIN_WEB_HOURS = 1;
 const ADMIN_MAX_FAILS = 10;
 const ADMIN_LOCK_MS = 15 * 60 * 1000;
 // Cape styles a player can pick (textures ship with the client).
-const CAPES = ['classic', 'crimson', 'ocean', 'emerald', 'gold', 'void'];
+const CAPES = ['classic', 'crimson', 'ocean', 'emerald', 'gold', 'void', 'aurora', 'sunset', 'cherry', 'frost'];
+// Cosmetic extras (drawn by the client, no textures needed). Must match Cosmetics.HATS / WINGS / TRAILS in the client.
+const HATS = ['halo', 'crown', 'horns', 'tophat', 'catears', 'bunnyears'];
+const WINGS = ['angel', 'demon', 'butterfly', 'phoenix'];
+const TRAILS = ['hearts', 'flames', 'sparkles', 'notes', 'petals', 'souls', 'magic', 'snow'];
+const MAX_WAYPOINT_NAME = 24;
+const DIMENSION_RE = /^[a-z0-9_.-]{1,32}:[a-z0-9_/.-]{1,48}$/;
 
 const UUID_RE = /^[0-9a-f]{32}$/;
 const NAME_RE = /^[A-Za-z0-9_]{3,16}$/;
@@ -160,13 +166,21 @@ function createHandler(deps = {}) {
     const server = String(body.server || '').slice(0, 100);
     // 1.8+ clients send capeStyle; older ones only send cape: true/false, which means the classic cape.
     const style = body.capeStyle === undefined ? (body.cape ? 'classic' : null) : capeStyle(body.capeStyle);
-    await update({
-      [`presence/${me.u}`]: { at: now(), server, hidden: !!body.hidden },
+    const hidden = !!body.hidden;
+    const changes = {
+      [`presence/${me.u}/at`]: now(),
+      [`presence/${me.u}/server`]: server,
+      [`presence/${me.u}/hidden`]: hidden,
       [`users/${me.u}/lastSeen`]: now(),
       [`users/${me.u}/cape`]: !!style,
       [`users/${me.u}/capeStyle`]: style,
       [`users/${me.u}/badge`]: body.badge !== false
-    });
+    };
+    // "Last seen" for friends only moves while you're visible, so going hidden looks exactly like logging off.
+    if (!hidden) changes[`presence/${me.u}/seen`] = now();
+    // 1.10+ clients send their cosmetic extras; older ones leave whatever was there.
+    if (body.extras !== undefined) changes[`users/${me.u}/extras`] = extras(body.extras);
+    await update(changes);
     // Only clients that can show messages ask for them (1.8+), so older clients don't swallow them unseen.
     const [state, playing, messages] = await Promise.all([friendState(me.u), playingNow(), body.wantsMessages ? takeMessages(me.u) : []]);
     return { ...state, playing, messages };
@@ -177,6 +191,32 @@ function createHandler(deps = {}) {
     const style = String(value);
     if (!CAPES.includes(style)) throw new HttpError(400, 'Unknown cape');
     return style;
+  }
+
+  // Printable text only: colour codes (§ + a character) removed, line breaks and control characters become spaces.
+  function cleanText(value) {
+    return String(value || '').replace(/§./gs, '').replace(/[\u0000-\u001f\u007f§]/g, ' ').trim();
+  }
+
+  function extras(value) {
+    const v = value && typeof value === 'object' ? value : {};
+    const pick = (x, list) => (list.includes(String(x)) ? String(x) : null);
+    return { hat: pick(v.hat, HATS), wings: pick(v.wings, WINGS), trail: pick(v.trail, TRAILS) };
+  }
+
+  // A waypoint attached to a message: a name, a position and a dimension, nothing else.
+  function waypoint(value) {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'object') throw new HttpError(400, 'Bad waypoint');
+    const name = cleanText(value.name).slice(0, MAX_WAYPOINT_NAME);
+    const [x, y, z] = [value.x, value.y, value.z].map(Number);
+    const dim = String(value.dim || '');
+    const finite = [x, y, z].every(Number.isFinite);
+    if (!name || !finite || Math.abs(x) > 30000000 || Math.abs(z) > 30000000 || Math.abs(y) > 4096 || !DIMENSION_RE.test(dim)) {
+      throw new HttpError(400, 'Bad waypoint');
+    }
+    const color = Number.isInteger(value.color) ? value.color & 0xffffff : 0xffffff;
+    return { name, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, z: Math.round(z * 10) / 10, dim, color };
   }
 
   // How many Dragomir players are online right now (not counting anyone appearing offline). Cached briefly,
@@ -207,9 +247,9 @@ function createHandler(deps = {}) {
 
   async function sendMessage(me, body) {
     const to = normUuid(body.to);
-    // Printable text only: colour codes (§ + a character) removed, line breaks and control characters become spaces.
-    const text = String(body.text || '').replace(/§./gs, '').replace(/[\u0000-\u001f\u007f§]/g, ' ').trim().slice(0, MAX_MESSAGE);
+    const text = cleanText(body.text).slice(0, MAX_MESSAGE);
     if (!text) throw new HttpError(400, 'Empty message');
+    const shared = waypoint(body.waypoint);
     if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only message friends');
 
     // At most MESSAGES_PER_MINUTE per sender, so a stuck key can't flood someone's inbox.
@@ -221,7 +261,7 @@ function createHandler(deps = {}) {
     const inbox = (await get(`messages/${to}`)) || {};
     const changes = {
       [`users/${me.u}/msgWindow`]: { start: fresh ? now() : window.start, count },
-      [`messages/${to}/${messageKey()}`]: { from: me.u, name: me.n, text, at: now() }
+      [`messages/${to}/${messageKey()}`]: { from: me.u, name: me.n, text, at: now(), ...(shared ? { waypoint: shared } : {}) }
     };
     // Keep the inbox bounded if someone stays offline for a long time: drop the oldest.
     const keys = Object.keys(inbox).sort();
@@ -238,7 +278,7 @@ function createHandler(deps = {}) {
     const changes = {};
     for (const key of keys) changes[`messages/${uuid}/${key}`] = null;
     await update(changes);
-    return keys.map((key) => inbox[key]).filter(Boolean).map((m) => ({ from: m.from, name: m.name, text: m.text, at: m.at }));
+    return keys.map((key) => inbox[key]).filter(Boolean).map((m) => ({ from: m.from, name: m.name, text: m.text, at: m.at, ...(m.waypoint ? { waypoint: m.waypoint } : {}) }));
   }
 
   async function friendState(uuid) {
@@ -254,7 +294,8 @@ function createHandler(deps = {}) {
       if (links[id] === 'friends') {
         const p = presence[i];
         const online = !!p && !p.hidden && now() - p.at < ONLINE_MS;
-        friends.push({ ...entry, online, server: online ? p.server : '' });
+        // lastSeen only counts time spent visible (see heartbeat), so it never gives away Appear Offline.
+        friends.push({ ...entry, online, server: online ? p.server : '', lastSeen: (p && p.seen) || 0 });
       } else if (links[id] === 'in') incoming.push(entry);
       else if (links[id] === 'out') outgoing.push(entry);
     });
@@ -269,7 +310,10 @@ function createHandler(deps = {}) {
     const users = {};
     ids.forEach((id, i) => {
       const r = records[i];
-      if (r) users[id] = { badge: r.badge !== false, cape: !!r.cape, capeStyle: r.cape ? (r.capeStyle || 'classic') : null };
+      if (r) {
+        users[id] = { badge: r.badge !== false, cape: !!r.cape, capeStyle: r.cape ? (r.capeStyle || 'classic') : null };
+        if (r.extras) users[id].extras = { hat: r.extras.hat || null, wings: r.extras.wings || null, trail: r.extras.trail || null };
+      }
     });
     return { users };
   }
