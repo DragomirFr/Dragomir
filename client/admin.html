@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Client Admin · Dragomir</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #09090b;
+      --card-bg: rgba(18, 18, 22, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-subtle: #52525b;
+      --accent: #7877c6;
+      --online: #4ade80;
+      --hidden: #fbbf24;
+      --danger: #f87171;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.14), transparent);
+      background-repeat: no-repeat;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .wrap { width: 100%; max-width: 980px; margin: 0 auto; padding: 0 1rem; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 1.5rem 0; }
+
+    .pill, button {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.4rem 0.9rem; border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border);
+      color: var(--text-muted); text-decoration: none; font: 500 0.8rem/1.2 inherit; cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pill:hover, button:hover { background: rgba(255, 255, 255, 0.09); border-color: var(--border-hover); color: var(--text-main); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    button.primary:hover { filter: brightness(1.1); }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    h1 { font-size: clamp(1.75rem, 6vw, 2.5rem); font-weight: 700; letter-spacing: -0.03em; }
+    .lead { margin-top: 0.5rem; color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; }
+
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; }
+
+    /* Sign in */
+    .login { max-width: 380px; margin: 4rem auto; }
+    .login form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.25rem; }
+    input {
+      width: 100%; padding: 0.7rem 0.9rem; border-radius: 10px; border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.35); color: var(--text-main); font: 500 0.95rem inherit;
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+    .error { color: var(--danger); font-size: 0.85rem; min-height: 1.2em; }
+
+    /* Dashboard */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1.5rem 0 1rem; }
+    .stat { padding: 1rem 1.25rem; }
+    .stat .value { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+    .stat .label { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.15rem; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+    .toolbar input { flex: 1 1 200px; width: auto; }
+    .toolbar label { color: var(--text-muted); font-size: 0.85rem; display: inline-flex; gap: 0.4rem; align-items: center; }
+    .toolbar label input { width: auto; flex: none; }
+    .updated { color: var(--text-subtle); font-size: 0.8rem; margin-left: auto; }
+
+    .table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border); background: var(--card-bg); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 640px; }
+    th, td { text-align: left; padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--text-subtle); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr:last-child td { border-bottom: none; }
+    td.name { font-weight: 600; }
+    td.muted { color: var(--text-muted); }
+    td.uuid { color: var(--text-subtle); font-family: ui-monospace, monospace; font-size: 0.75rem; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.45rem; background: var(--text-subtle); }
+    .dot.online { background: var(--online); }
+    .tag { font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 9999px; margin-left: 0.4rem; }
+    .tag.hidden { color: var(--hidden); border: 1px solid rgba(251, 191, 36, 0.4); }
+    .empty { color: var(--text-muted); text-align: center; padding: 2rem; }
+
+    .note { color: var(--text-subtle); font-size: 0.8rem; line-height: 1.6; margin: 1rem 0 3rem; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="topbar">
+      <a href="/client" class="pill">&larr; Dragomir Client</a>
+      <button id="signOut" hidden>Sign out</button>
+    </nav>
+
+    <section class="login card" id="login">
+      <h1>Client admin</h1>
+      <p class="lead">Sign in with the website's master passcode to see Dragomir Client players.</p>
+      <form id="loginForm">
+        <input type="password" id="passcode" placeholder="Master passcode" autocomplete="current-password" required>
+        <button class="primary" type="submit" id="loginButton">Sign in</button>
+        <p class="error" id="loginError"></p>
+      </form>
+    </section>
+
+    <section id="dashboard" hidden>
+      <h1>Players</h1>
+      <p class="lead">Everyone who has used Dragomir Client, including players appearing offline (they're told admins can see them).</p>
+
+      <div class="stats">
+        <div class="card stat"><div class="value" id="statOnline">–</div><div class="label">Online now</div></div>
+        <div class="card stat"><div class="value" id="statHidden">–</div><div class="label">Appearing offline</div></div>
+        <div class="card stat"><div class="value" id="statTotal">–</div><div class="label">Players in total</div></div>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" id="filter" placeholder="Search by name or server" aria-label="Search players">
+        <label><input type="checkbox" id="onlineOnly"> Online only</label>
+        <button id="refresh">Refresh</button>
+        <span class="updated" id="updated"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Player</th><th>Status</th><th>Server</th><th>Cape</th><th>Friends</th><th>Last seen</th><th>UUID</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="note">Refreshes every 30 seconds while this page is open. Online means the game checked in during the last 2½ minutes.</p>
+    </section>
+  </div>
+
+  <script>
+    const API = '/api/client';
+    const TOKEN_KEY = 'dragomir_client_admin_token';
+    let players = [];
+    let timer = null;
+
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function call(body) {
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(data.error || `Error ${res.status}`); e.status = res.status; throw e; }
+      return data;
+    }
+
+    function ago(ms) {
+      if (!ms) return 'never';
+      const s = Math.max(0, (Date.now() - ms) / 1000);
+      if (s < 60) return 'just now';
+      if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+      if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+      return `${Math.floor(s / 86400)} days ago`;
+    }
+
+    function render() {
+      const query = $('filter').value.trim().toLowerCase();
+      const onlineOnly = $('onlineOnly').checked;
+      const shown = players.filter((p) => (!onlineOnly || p.online)
+        && (!query || p.name.toLowerCase().includes(query) || (p.server || '').toLowerCase().includes(query)));
+      $('statOnline').textContent = players.filter((p) => p.online).length;
+      $('statHidden').textContent = players.filter((p) => p.online && p.hidden).length;
+      $('statTotal').textContent = players.length;
+      $('rows').innerHTML = shown.length ? shown.map((p) => `<tr>
+          <td class="name">${escapeHtml(p.name)}</td>
+          <td><span class="dot${p.online ? ' online' : ''}"></span>${p.online ? 'Online' : 'Offline'}${p.online && p.hidden ? '<span class="tag hidden">appearing offline</span>' : ''}</td>
+          <td class="muted">${escapeHtml(p.server || '—')}</td>
+          <td class="muted">${p.capeStyle ? escapeHtml(p.capeStyle[0].toUpperCase() + p.capeStyle.slice(1)) : '—'}</td>
+          <td class="muted">${p.friends}</td>
+          <td class="muted">${p.online ? 'now' : ago(p.lastSeen)}</td>
+          <td class="uuid">${escapeHtml(p.uuid)}</td>
+        </tr>`).join('') : `<tr><td class="empty" colspan="7">${players.length ? 'No players match.' : 'No players yet.'}</td></tr>`;
+    }
+
+    async function load() {
+      const token = sessionStorage.getItem(TOKEN_KEY);
+      if (!token) return showLogin();
+      $('refresh').disabled = true;
+      try {
+        players = (await call({ action: 'admin', op: 'players', token })).players;
+        $('updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        render();
+      } catch (e) {
+        if (e.status === 401 || e.status === 403) return showLogin('Your session ended. Sign in again.');
+        $('updated').textContent = `Couldn't refresh: ${e.message}`;
+      } finally {
+        $('refresh').disabled = false;
+      }
+    }
+
+    function showDashboard() {
+      $('login').hidden = true;
+      $('dashboard').hidden = false;
+      $('signOut').hidden = false;
+      load();
+      clearInterval(timer);
+      timer = setInterval(() => { if (!document.hidden) load(); }, 30000);
+    }
+
+    function showLogin(message) {
+      clearInterval(timer);
+      sessionStorage.removeItem(TOKEN_KEY);
+      $('dashboard').hidden = true;
+      $('signOut').hidden = true;
+      $('login').hidden = false;
+      $('loginError').textContent = message || '';
+      $('passcode').focus();
+    }
+
+    $('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('loginButton').disabled = true;
+      $('loginButton').textContent = 'Checking…';
+      $('loginError').textContent = '';
+      try {
+        const { token } = await call({ action: 'adminLogin', passcode: $('passcode').value });
+        sessionStorage.setItem(TOKEN_KEY, token);
+        $('passcode').value = '';
+        showDashboard();
+      } catch (err) {
+        $('loginError').textContent = err.message;
+      } finally {
+        $('loginButton').disabled = false;
+        $('loginButton').textContent = 'Sign in';
+      }
+    });
+    $('signOut').addEventListener('click', () => showLogin());
+    $('refresh').addEventListener('click', load);
+    $('filter').addEventListener('input', render);
+    $('onlineOnly').addEventListener('change', render);
+
+    if (sessionStorage.getItem(TOKEN_KEY)) showDashboard();
+  </script>
+</body>
+</html>

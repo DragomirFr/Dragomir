@@ -401,6 +401,27 @@
       color: var(--text-muted);
     }
 
+    .topbar-links { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
+
+    /* Performance */
+    #performance { margin-top: 5rem; }
+    .perf { margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem; }
+    .perf:hover { transform: none; }
+    .perf-row { display: grid; grid-template-columns: 15rem 1fr 11rem; align-items: center; gap: 1rem; }
+    .perf-label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
+    .perf-row.best .perf-label { color: var(--text-main); }
+    .perf-bar { height: 10px; border-radius: 9999px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+    .perf-bar span { display: block; height: 100%; border-radius: 9999px; background: rgba(120, 119, 198, 0.45); }
+    .perf-row.best .perf-bar span { background: var(--accent); }
+    .perf-num { font-size: 0.95rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+    .perf-num small { font-weight: 500; color: var(--text-subtle); font-size: 0.75rem; }
+    .perf-note { margin-top: 0.5rem; font-size: 0.82rem; line-height: 1.6; color: var(--text-subtle); }
+    #performance code, .perf-note code { font-size: 0.85em; background: rgba(255, 255, 255, 0.06); padding: 0.1rem 0.35rem; border-radius: 6px; }
+    @media (max-width: 640px) {
+      .perf-row { grid-template-columns: 1fr; gap: 0.4rem; }
+      .perf-num { text-align: left; }
+    }
+
     @keyframes fadeIn {
       0% { opacity: 0; transform: translateY(8px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -440,7 +461,10 @@
   <div class="wrap">
     <nav class="topbar">
       <a href="/" class="pill">&larr; Home</a>
-      <a href="#install" class="pill">How to install</a>
+      <span class="topbar-links">
+        <a href="/client/changelog" class="pill">Changelog</a>
+        <a href="#install" class="pill">How to install</a>
+      </span>
     </nav>
 
     <header class="hero">
@@ -449,9 +473,9 @@
       <p class="tagline">A clean PvP client for Minecraft 26.3.</p>
 
       <div class="hero-actions">
-        <a href="/client/dragomir-client-1.7.1.jar" download class="btn btn-primary">
+        <a href="/client/dragomir-client-1.8.0.jar" download class="btn btn-primary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-          Download v1.7.1
+          Download v1.8.0
         </a>
         <a href="#install" class="btn btn-secondary">Install guide</a>
       </div>
@@ -511,6 +535,43 @@
           <h3>Profiles &amp; themes</h3>
           <p>Default, PvP, Building and Recording profiles, five HUD themes, and setup codes to share your config with friends.</p>
         </div>
+        <div class="card">
+          <h3>Friends &amp; capes</h3>
+          <p>See which friends are online and where, join their server in one click, message them across servers, and pick from six capes others can see.</p>
+        </div>
+        <div class="card">
+          <h3>Slot lock &amp; reconnect</h3>
+          <p>Lock hotbar slots so nothing gets dropped by accident, and rejoin automatically when a server restarts.</p>
+        </div>
+        <div class="card">
+          <h3>Updates itself</h3>
+          <p>New versions show up on the main menu. Press Install, quit, and it's done. See the <a href="/client/changelog">changelog</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="performance">
+      <p class="eyebrow">Performance</p>
+      <h2>Measured, not guessed</h2>
+      <p class="section-lead">Same world, same spot and view, render distance 8, frame limit off. Each setup ran three 30-second <code>/dragomir benchmark</code> runs; the middle result is shown.</p>
+
+      <div class="perf card">
+        <div class="perf-row">
+          <span class="perf-label">Without Sodium</span>
+          <span class="perf-bar"><span style="width: 84%"></span></span>
+          <span class="perf-num">248 <small>avg</small> · 97 <small>1% low</small></span>
+        </div>
+        <div class="perf-row">
+          <span class="perf-label">Dragomir 1.8 (Sodium built in)</span>
+          <span class="perf-bar"><span style="width: 88%"></span></span>
+          <span class="perf-num">259 <small>avg</small> · 112 <small>1% low</small></span>
+        </div>
+        <div class="perf-row best">
+          <span class="perf-label">Dragomir 1.8 + FPS Boost</span>
+          <span class="perf-bar"><span style="width: 100%"></span></span>
+          <span class="perf-num">295 <small>avg</small> · 124 <small>1% low</small></span>
+        </div>
+        <p class="perf-note">FPS Boost gave +14% average and +11% on the 1% lows here, so fewer stutters. This was a laptop RTX 3060 at 854×480 in a dense jungle, where the graphics card isn't the limit, so Sodium's own gain is small in this test. It grows with longer render distances and slower GPUs. Try it on your PC with <code>/dragomir benchmark</code>.</p>
       </div>
     </section>
 
@@ -531,7 +592,7 @@
       <ol class="steps">
         <li><span>Install <strong>Fabric Loader</strong> for Minecraft 26.3 with the <a href="https://fabricmc.net/use/installer/" target="_blank" rel="noopener noreferrer">Fabric installer</a>.</span></li>
         <li><span>Download <strong>Fabric API</strong> for 26.3 from <a href="https://modrinth.com/mod/fabric-api" target="_blank" rel="noopener noreferrer">Modrinth</a>.</span></li>
-        <li><span><a href="/client/dragomir-client-1.7.1.jar" download>Download Dragomir Client</a>, then put both jars in your mods folder: <code>%appdata%\.minecraft\mods</code></span></li>
+        <li><span><a href="/client/dragomir-client-1.8.0.jar" download>Download Dragomir Client</a>, then put both jars in your mods folder: <code>%appdata%\.minecraft\mods</code></span></li>
         <li><span>Open the Minecraft Launcher, pick the <strong>fabric-loader 26.3</strong> profile and press Play. Press <kbd>Right Shift</kbd> in game to open the mods.</span></li>
         <li><span>Updates install themselves: when a new version is out, press <strong>Install</strong> on the main menu, then quit the game to finish.</span></li>
       </ol>

@@ -1,4 +1,5 @@
-// Dragomir Client social features: who plays with Dragomir (badges, capes), friends and online status.
+// Dragomir Client social features: who plays with Dragomir (badges, capes), friends, online status,
+// messages between friends, and the admin view (in game for DRAGOMIR_ADMINS, and the website's /client-admin page).
 //
 // Players prove who they are with Mojang's session check, the same one Minecraft servers use: the game
 // "joins" a random server id, and this function asks Mojang whether that player really did. The player then
@@ -20,6 +21,15 @@ const TOKEN_HOURS = 12;
 const ONLINE_MS = 150 * 1000;   // a heartbeat comes every 60 s, so 2.5 min without one means offline
 const MAX_FRIENDS = 200;
 const MAX_LOOKUP = 100;
+const PLAYING_CACHE_MS = 30 * 1000;
+const MAX_MESSAGE = 256;
+const MAX_INBOX = 100;
+const MESSAGES_PER_MINUTE = 20;
+const ADMIN_WEB_HOURS = 1;
+const ADMIN_MAX_FAILS = 10;
+const ADMIN_LOCK_MS = 15 * 60 * 1000;
+// Cape styles a player can pick (textures ship with the client).
+const CAPES = ['classic', 'crimson', 'ocean', 'emerald', 'gold', 'void'];
 
 const UUID_RE = /^[0-9a-f]{32}$/;
 const NAME_RE = /^[A-Za-z0-9_]{3,16}$/;
@@ -148,13 +158,87 @@ function createHandler(deps = {}) {
 
   async function heartbeat(me, body) {
     const server = String(body.server || '').slice(0, 100);
+    // 1.8+ clients send capeStyle; older ones only send cape: true/false, which means the classic cape.
+    const style = body.capeStyle === undefined ? (body.cape ? 'classic' : null) : capeStyle(body.capeStyle);
     await update({
       [`presence/${me.u}`]: { at: now(), server, hidden: !!body.hidden },
       [`users/${me.u}/lastSeen`]: now(),
-      [`users/${me.u}/cape`]: !!body.cape,
+      [`users/${me.u}/cape`]: !!style,
+      [`users/${me.u}/capeStyle`]: style,
       [`users/${me.u}/badge`]: body.badge !== false
     });
-    return friendState(me.u);
+    // Only clients that can show messages ask for them (1.8+), so older clients don't swallow them unseen.
+    const [state, playing, messages] = await Promise.all([friendState(me.u), playingNow(), body.wantsMessages ? takeMessages(me.u) : []]);
+    return { ...state, playing, messages };
+  }
+
+  function capeStyle(value) {
+    if (value === null || value === '' || value === false) return null;
+    const style = String(value);
+    if (!CAPES.includes(style)) throw new HttpError(400, 'Unknown cape');
+    return style;
+  }
+
+  // How many Dragomir players are online right now (not counting anyone appearing offline). Cached briefly,
+  // since every heartbeat asks and the answer only needs to be roughly current.
+  let playingCache = null;
+  let playingUntil = 0;
+
+  async function playingNow() {
+    if (playingCache !== null && now() < playingUntil) return playingCache;
+    const presence = (await get('presence')) || {};
+    playingCache = Object.values(presence).filter((p) => p && !p.hidden && now() - p.at < ONLINE_MS).length;
+    playingUntil = now() + PLAYING_CACHE_MS;
+    return playingCache;
+  }
+
+  // ------------------------------------------------------------ messages between friends
+
+  // Keys sort in sending order: time, then a counter for messages sent in the same millisecond.
+  let messageSeq = 0;
+  function messageKey() {
+    messageSeq = (messageSeq + 1) % 1000000;
+    return `${String(now()).padStart(15, '0')}-${String(messageSeq).padStart(6, '0')}-${crypto.randomBytes(3).toString('hex')}`;
+  }
+
+  async function areFriends(a, b) {
+    return (await get(`friends/${a}/${b}`)) === 'friends';
+  }
+
+  async function sendMessage(me, body) {
+    const to = normUuid(body.to);
+    // Printable text only: colour codes (§ + a character) removed, line breaks and control characters become spaces.
+    const text = String(body.text || '').replace(/§./gs, '').replace(/[\u0000-\u001f\u007f§]/g, ' ').trim().slice(0, MAX_MESSAGE);
+    if (!text) throw new HttpError(400, 'Empty message');
+    if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only message friends');
+
+    // At most MESSAGES_PER_MINUTE per sender, so a stuck key can't flood someone's inbox.
+    const window = (await get(`users/${me.u}/msgWindow`)) || { start: 0, count: 0 };
+    const fresh = now() - window.start >= 60 * 1000;
+    const count = fresh ? 1 : window.count + 1;
+    if (count > MESSAGES_PER_MINUTE) throw new HttpError(429, 'Slow down a little');
+
+    const inbox = (await get(`messages/${to}`)) || {};
+    const changes = {
+      [`users/${me.u}/msgWindow`]: { start: fresh ? now() : window.start, count },
+      [`messages/${to}/${messageKey()}`]: { from: me.u, name: me.n, text, at: now() }
+    };
+    // Keep the inbox bounded if someone stays offline for a long time: drop the oldest.
+    const keys = Object.keys(inbox).sort();
+    for (const key of keys.slice(0, Math.max(0, keys.length - MAX_INBOX + 1))) changes[`messages/${to}/${key}`] = null;
+    await update(changes);
+    return { sent: true };
+  }
+
+  // Messages waiting for this player, oldest first. They're removed once handed over.
+  async function takeMessages(uuid) {
+    const inbox = (await get(`messages/${uuid}`)) || {};
+    const keys = Object.keys(inbox).sort();
+    if (!keys.length) return [];
+    const changes = {};
+    for (const key of keys) changes[`messages/${uuid}/${key}`] = null;
+    await update(changes);
+    return keys.map((key) => inbox[key]).filter(Boolean).map((m) => ({ from: m.from, name: m.name, text: m.text, at: m.at }));
   }
 
   async function friendState(uuid) {
@@ -185,7 +269,7 @@ function createHandler(deps = {}) {
     const users = {};
     ids.forEach((id, i) => {
       const r = records[i];
-      if (r) users[id] = { badge: r.badge !== false, cape: !!r.cape };
+      if (r) users[id] = { badge: r.badge !== false, cape: !!r.cape, capeStyle: r.cape ? (r.capeStyle || 'classic') : null };
     });
     return { users };
   }
@@ -227,10 +311,48 @@ function createHandler(deps = {}) {
     return friendState(me.u);
   }
 
+  // ------------------------------------------------------------ admin
+
+  // The website admin page signs in with the site's master passcode. It's checked here against the
+  // PBKDF2 hash the admin page stores in /adminAuth, so the check happens on the server, not in the browser.
+  async function adminLogin(body) {
+    const passcode = String(body.passcode || '');
+    if (!passcode || passcode.length > 200) throw new HttpError(400, 'Enter the passcode');
+    const fails = (await get('adminWeb/fails')) || { start: 0, count: 0 };
+    const fresh = now() - fails.start >= ADMIN_LOCK_MS;
+    if (!fresh && fails.count >= ADMIN_MAX_FAILS) throw new HttpError(429, 'Too many wrong passcodes. Try again in 15 minutes.');
+
+    const creds = await db('GET', 'adminAuth');
+    if (!creds || !creds.salt || !creds.hash) throw new HttpError(503, 'The admin passcode is not set up');
+    const hash = crypto.pbkdf2Sync(passcode, Buffer.from(String(creds.salt), 'hex'), 100000, 32, 'sha256').toString('hex');
+    const a = Buffer.from(hash), b = Buffer.from(String(creds.hash));
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      await update({ 'adminWeb/fails': { start: fresh ? now() : fails.start, count: fresh ? 1 : fails.count + 1 } });
+      throw new HttpError(401, 'Wrong passcode');
+    }
+    await update({ 'adminWeb/fails': null });
+    return { token: sign({ web: true, exp: now() + ADMIN_WEB_HOURS * 3600 * 1000 }) };
+  }
+
   // Admins see everyone online, including players who chose "Appear offline" (the client tells players this).
+  // Allowed for players listed in DRAGOMIR_ADMINS, and for the website admin page after adminLogin.
   async function admin(me, body) {
-    if (!isAdmin(me.u)) throw new HttpError(403, 'Admins only');
+    if (!(me.web || isAdmin(me.u))) throw new HttpError(403, 'Admins only');
     const op = String(body.op || '');
+    if (op === 'players') {
+      const [presence, users, friends] = await Promise.all([get('presence'), get('users'), get('friends')]);
+      const players = Object.entries(users || {}).map(([id, u]) => {
+        const p = presence && presence[id];
+        const online = !!p && now() - p.at < ONLINE_MS;
+        const links = (friends && friends[id]) || {};
+        return {
+          uuid: id, name: u.name || '?', lastSeen: u.lastSeen || 0, online, server: online ? p.server : '',
+          hidden: !!(p && p.hidden), capeStyle: u.cape ? (u.capeStyle || 'classic') : null,
+          friends: Object.values(links).filter((v) => v === 'friends').length
+        };
+      }).sort((x, y) => (y.online - x.online) || (y.lastSeen - x.lastSeen));
+      return { players };
+    }
     if (op === 'online') {
       const [presence, users] = await Promise.all([get('presence'), get('users')]);
       const online = Object.entries(presence || {})
@@ -263,12 +385,16 @@ function createHandler(deps = {}) {
       const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
       const action = String(body.action || '');
       if (action === 'auth') return res.status(200).json(await auth(body));
+      if (action === 'adminLogin') return res.status(200).json(await adminLogin(body));
       const me = verify(body.token);
       let result;
-      if (action === 'heartbeat') result = await heartbeat(me, body);
+      if (action === 'admin') result = await admin(me, body);
+      else if (!me.u) throw new HttpError(403, 'Players only');   // admin web tokens can only do admin things
+      else if (action === 'heartbeat') result = await heartbeat(me, body);
       else if (action === 'cosmetics') result = await cosmetics(me, body);
       else if (action === 'friend') result = await friend(me, body);
-      else if (action === 'admin') result = await admin(me, body);
+      else if (action === 'message') result = await sendMessage(me, body);
+      else if (action === 'inbox') result = { messages: await takeMessages(me.u) };
       else throw new HttpError(400, 'Unknown action');
       return res.status(200).json(result);
     } catch (err) {

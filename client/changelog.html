@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog · Dragomir Client</title>
+  <meta name="description" content="Every Dragomir Client release and what changed, from the GitHub release notes.">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #09090b;
+      --card-bg: rgba(18, 18, 22, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-subtle: #52525b;
+      --accent: #7877c6;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.14), transparent);
+      background-repeat: no-repeat;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .wrap { width: 100%; max-width: 760px; margin: 0 auto; padding: 0 1rem; }
+
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 1.5rem 0; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.85rem; border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border);
+      color: var(--text-muted); text-decoration: none; font-size: 0.8rem; font-weight: 500;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pill:hover { background: rgba(255, 255, 255, 0.09); border-color: var(--border-hover); color: var(--text-main); }
+
+    header { padding: 2.5rem 0 2rem; }
+    h1 { font-size: clamp(2rem, 7vw, 3.25rem); font-weight: 700; letter-spacing: -0.03em; }
+    .lead { margin-top: 0.75rem; color: var(--text-muted); line-height: 1.6; }
+
+    .release {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
+      padding: 1.5rem; margin-bottom: 1rem;
+    }
+    .release-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem 1rem; }
+    .release h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+    .badge {
+      display: inline-block; margin-left: 0.5rem; padding: 0.1rem 0.55rem; border-radius: 9999px;
+      font-size: 0.7rem; font-weight: 600; vertical-align: middle;
+      background: rgba(120, 119, 198, 0.18); color: #c4c3f5; border: 1px solid rgba(120, 119, 198, 0.4);
+    }
+    .meta { color: var(--text-subtle); font-size: 0.85rem; }
+    .meta a { color: var(--text-muted); }
+
+    .notes { margin-top: 1rem; color: var(--text-muted); line-height: 1.65; font-size: 0.95rem; overflow-wrap: anywhere; }
+    .notes h3 { color: var(--text-main); font-size: 0.95rem; font-weight: 700; margin: 1.1rem 0 0.4rem; }
+    .notes h3:first-child { margin-top: 0; }
+    .notes ul { padding-left: 1.2rem; }
+    .notes li { margin: 0.25rem 0; }
+    .notes strong { color: var(--text-main); font-weight: 600; }
+    .notes code { font-size: 0.85em; background: rgba(255, 255, 255, 0.06); padding: 0.1rem 0.35rem; border-radius: 6px; }
+    .notes a { color: #c4c3f5; }
+    .notes p { margin: 0.4rem 0; }
+
+    .status { color: var(--text-muted); padding: 2rem 0; text-align: center; }
+
+    footer { padding: 2.5rem 0 3rem; color: var(--text-subtle); font-size: 0.8rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="topbar">
+      <a href="/client" class="pill">&larr; Dragomir Client</a>
+      <a href="https://github.com/DragomirFr/Dragomir/releases" class="pill" target="_blank" rel="noopener noreferrer">GitHub releases</a>
+    </nav>
+
+    <header>
+      <h1>Changelog</h1>
+      <p class="lead">Every release and what changed. Players on 1.5.0 or newer get each update from the main menu in game.</p>
+    </header>
+
+    <main id="releases">
+      <p class="status" id="status">Loading releases…</p>
+    </main>
+
+    <footer>Straight from the release notes on GitHub. Not affiliated with Mojang or Microsoft.</footer>
+  </div>
+
+  <script>
+    // Only client releases (tags client-v…), never drafts or pre-releases, newest first.
+    const API = 'https://api.github.com/repos/DragomirFr/Dragomir/releases?per_page=50';
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // Enough Markdown for release notes: ## headings, - bullets, **bold**, `code`, [links](https://…).
+    function inline(text) {
+      return escapeHtml(text)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    }
+
+    function markdown(source) {
+      const out = [];
+      let inList = false;
+      for (const raw of source.replace(/\r/g, '').split('\n')) {
+        const line = raw.trim();
+        const bullet = /^[-*]\s+(.*)$/.exec(line);
+        if (bullet) {
+          if (!inList) { out.push('<ul>'); inList = true; }
+          out.push(`<li>${inline(bullet[1])}</li>`);
+          continue;
+        }
+        if (inList) { out.push('</ul>'); inList = false; }
+        if (!line) continue;
+        const heading = /^#{1,6}\s+(.*)$/.exec(line);
+        out.push(heading ? `<h3>${inline(heading[1])}</h3>` : `<p>${inline(line)}</p>`);
+      }
+      if (inList) out.push('</ul>');
+      return out.join('');
+    }
+
+    function render(releases) {
+      const main = document.getElementById('releases');
+      const client = releases.filter((r) => !r.draft && !r.prerelease && r.tag_name.startsWith('client-v'));
+      if (!client.length) {
+        document.getElementById('status').textContent = 'No releases yet.';
+        return;
+      }
+      main.innerHTML = client.map((r, i) => {
+        const version = escapeHtml(r.tag_name.slice('client-v'.length));
+        const date = new Date(r.published_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+        return `<article class="release">
+          <div class="release-head">
+            <h2>v${version}${i === 0 ? '<span class="badge">Latest</span>' : ''}</h2>
+            <span class="meta">${escapeHtml(date)} · <a href="${escapeHtml(r.html_url)}" target="_blank" rel="noopener noreferrer">on GitHub</a></span>
+          </div>
+          <div class="notes">${markdown(r.body || '')}</div>
+        </article>`;
+      }).join('');
+    }
+
+    fetch(API, { headers: { Accept: 'application/vnd.github+json' } })
+      .then((res) => {
+        if (!res.ok) throw new Error(res.status === 403 ? 'GitHub is limiting requests right now. Try again in a few minutes.' : `GitHub answered ${res.status}`);
+        return res.json();
+      })
+      .then(render)
+      .catch((err) => {
+        const status = document.getElementById('status');
+        status.innerHTML = `Couldn't load the changelog (${escapeHtml(err.message)}). <a class="pill" href="https://github.com/DragomirFr/Dragomir/releases">See the releases on GitHub</a>`;
+      });
+  </script>
+</body>
+</html>

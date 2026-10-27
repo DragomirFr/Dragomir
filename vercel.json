@@ -31,6 +31,14 @@
     {
       "source": "/admin",
       "destination": "admin.html"
+    },
+    {
+      "source": "/client/changelog",
+      "destination": "/client/changelog.html"
+    },
+    {
+      "source": "/client-admin",
+      "destination": "/client/admin.html"
     }
   ]
 }
