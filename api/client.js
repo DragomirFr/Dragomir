@@ -1,5 +1,6 @@
 // Dragomir Client social features: who plays with Dragomir (badges, capes), friends, online status,
-// messages between friends, and the admin view (in game for DRAGOMIR_ADMINS, and the website's /client-admin page).
+// messages between friends, parties, shared locations and pictures, profiles, cosmetic unlocks and gifts, settings
+// sync, bug reports, announcements and feature flags, and the admin view (in game for DRAGOMIR_ADMINS, and the website's /client-admin page).
 //
 // Players prove who they are with Mojang's session check, the same one Minecraft servers use: the game
 // "joins" a random server id, and this function asks Mojang whether that player really did. The player then
@@ -28,14 +29,48 @@ const MESSAGES_PER_MINUTE = 20;
 const ADMIN_WEB_HOURS = 1;
 const ADMIN_MAX_FAILS = 10;
 const ADMIN_LOCK_MS = 15 * 60 * 1000;
-// Cape styles a player can pick (textures ship with the client).
-const CAPES = ['classic', 'crimson', 'ocean', 'emerald', 'gold', 'void', 'aurora', 'sunset', 'cherry', 'frost'];
-// Cosmetic extras (drawn by the client, no textures needed). Must match Cosmetics.HATS / WINGS / TRAILS in the client.
-const HATS = ['halo', 'crown', 'horns', 'tophat', 'catears', 'bunnyears'];
+// Cape styles a player can pick (textures ship with the client). anim_* capes are animated.
+const CAPES = ['classic', 'crimson', 'ocean', 'emerald', 'gold', 'void', 'aurora', 'sunset', 'cherry', 'frost',
+  'founder', 'anim_rainbow', 'anim_flame', 'anim_galaxy'];
+// Cosmetic extras (drawn by the client, no textures needed). Must match the lists in the client's Cosmetics class.
+const HATS = ['halo', 'crown', 'horns', 'tophat', 'catears', 'bunnyears', 'pumpkin', 'santa'];
 const WINGS = ['angel', 'demon', 'butterfly', 'phoenix'];
 const TRAILS = ['hearts', 'flames', 'sparkles', 'notes', 'petals', 'souls', 'magic', 'snow'];
+const ACCESSORIES = ['backpack', 'scarf', 'aura'];
+const PETS = ['crystal', 'orb', 'bee'];
+// Cosmetics that have to be unlocked (everything else is free). The client shows the same rules, but the server decides.
+//   hours: total time played with Dragomir; founder: an account first seen before FOUNDER_UNTIL; month: worn only in
+//   that month (0 = January). Anything can also be unlocked by a friend's gift.
+const UNLOCKS = {
+  'cape:founder': { founder: true },
+  'cape:anim_flame': { hours: 5 },
+  'cape:anim_galaxy': { hours: 20 },
+  'pet:crystal': { hours: 10 },
+  'pet:bee': { founder: true },
+  'accessory:aura': { hours: 30 },
+  'hat:pumpkin': { month: 9 },
+  'hat:santa': { month: 11 }
+};
+const FOUNDER_UNTIL = Date.UTC(2026, 11, 1);
+const GIFTS_PER_DAY = 1;
 const MAX_WAYPOINT_NAME = 24;
 const DIMENSION_RE = /^[a-z0-9_.-]{1,32}:[a-z0-9_/.-]{1,48}$/;
+const MAX_STATUS = 40;
+const MAX_BIO = 160;
+const MAX_SETUP = 16 * 1024;
+const MAX_SYNC = 256 * 1024;
+const MAX_SHOT = 900 * 1024;          // base64 characters (about 650 KB of JPEG)
+const SHOTS_PER_DAY = 20;
+const SHOT_KEEP_MS = 7 * 24 * 3600 * 1000;
+const MAX_PARTY = 8;
+const PARTY_INVITE_MS = 10 * 60 * 1000;
+const INVITE_CODE_MS = 24 * 3600 * 1000;
+const MAX_SHARE_MINUTES = 120;
+const MAX_BUG = 4000;
+const MAX_BUG_LOG = 64 * 1024;
+const BUGS_PER_HOUR = 3;
+const MAX_ANNOUNCEMENT = 200;
+const FLAG_RE = /^[a-zA-Z][a-zA-Z0-9_]{0,31}$/;
 
 const UUID_RE = /^[0-9a-f]{32}$/;
 const NAME_RE = /^[A-Za-z0-9_]{3,16}$/;
@@ -153,7 +188,9 @@ function createHandler(deps = {}) {
     const uuid = normUuid(profile.id);
     const realName = checkName(profile.name);
     const lower = realName.toLowerCase();
+    const firstSeen = await get(`users/${uuid}/firstSeen`);
     await update({
+      ...(firstSeen ? {} : { [`users/${uuid}/firstSeen`]: now() }),
       [`users/${uuid}/name`]: realName,
       [`users/${uuid}/nameLower`]: lower,
       [`users/${uuid}/lastSeen`]: now(),
@@ -164,9 +201,13 @@ function createHandler(deps = {}) {
 
   async function heartbeat(me, body) {
     const server = String(body.server || '').slice(0, 100);
-    // 1.8+ clients send capeStyle; older ones only send cape: true/false, which means the classic cape.
-    const style = body.capeStyle === undefined ? (body.cape ? 'classic' : null) : capeStyle(body.capeStyle);
     const hidden = !!body.hidden;
+    const [user, prev] = await Promise.all([get(`users/${me.u}`), get(`presence/${me.u}`)]);
+    const u = user || {};
+    // 1.8+ clients send capeStyle; older ones only send cape: true/false, which means the classic cape.
+    // Locked cosmetics someone hasn't unlocked are quietly dropped rather than refusing the heartbeat.
+    let style = body.capeStyle === undefined ? (body.cape ? 'classic' : null) : capeStyle(body.capeStyle);
+    if (style && !owns(u, `cape:${style}`)) style = null;
     const changes = {
       [`presence/${me.u}/at`]: now(),
       [`presence/${me.u}/server`]: server,
@@ -178,12 +219,27 @@ function createHandler(deps = {}) {
     };
     // "Last seen" for friends only moves while you're visible, so going hidden looks exactly like logging off.
     if (!hidden) changes[`presence/${me.u}/seen`] = now();
+    // Time played: the gap since the last heartbeat, if it was recent (otherwise the game was closed in between).
+    if (prev && prev.at && now() - prev.at < 2 * 60 * 1000) changes[`users/${me.u}/playMs`] = (u.playMs || 0) + (now() - prev.at);
     // 1.10+ clients send their cosmetic extras; older ones leave whatever was there.
-    if (body.extras !== undefined) changes[`users/${me.u}/extras`] = extras(body.extras);
+    if (body.extras !== undefined) changes[`users/${me.u}/extras`] = extras(body.extras, u);
+    // 1.11+: a short status, Do Not Disturb, and where you are (only sent while sharing your location).
+    if (body.status !== undefined) changes[`presence/${me.u}/status`] = cleanText(body.status).slice(0, MAX_STATUS);
+    if (body.dnd !== undefined) changes[`presence/${me.u}/dnd`] = !!body.dnd;
+    if (body.version !== undefined) changes[`presence/${me.u}/version`] = String(body.version).slice(0, 20);
+    changes[`presence/${me.u}/pos`] = position(body.pos);
+    if (Array.isArray(body.mods)) {
+      changes[`usage/${me.u}`] = { at: now(), version: String(body.version || '').slice(0, 20),
+        mods: body.mods.slice(0, 150).map((m) => String(m).slice(0, 40)) };
+    }
     await update(changes);
     // Only clients that can show messages ask for them (1.8+), so older clients don't swallow them unseen.
-    const [state, playing, messages] = await Promise.all([friendState(me.u), playingNow(), body.wantsMessages ? takeMessages(me.u) : []]);
-    return { ...state, playing, messages };
+    const [state, playing, messages, partyNow, notice] = await Promise.all([
+      friendState(me.u), playingNow(), body.wantsMessages ? takeMessages(me.u) : [], partyState(me.u, u.party), notices()
+    ]);
+    const after = { ...u, playMs: changes[`users/${me.u}/playMs`] || u.playMs || 0 };
+    return { ...state, playing, messages, party: partyNow, ...notice,
+      me: { playMs: after.playMs, unlocked: unlocked(after), gifts: Object.keys(u.gifts || {}), inviteCode: u.inviteCode || null } };
   }
 
   function capeStyle(value) {
@@ -198,12 +254,43 @@ function createHandler(deps = {}) {
     return String(value || '').replace(/§./gs, '').replace(/[\u0000-\u001f\u007f§]/g, ' ').trim();
   }
 
-  function extras(value) {
-    const v = value && typeof value === 'object' ? value : {};
-    const pick = (x, list) => (list.includes(String(x)) ? String(x) : null);
-    return { hat: pick(v.hat, HATS), wings: pick(v.wings, WINGS), trail: pick(v.trail, TRAILS) };
+  // Whether this player may wear a cosmetic ("cape:founder", "hat:santa", ...): free, unlocked by its rule, or a gift.
+  function owns(user, item) {
+    const rule = UNLOCKS[item];
+    if (!rule) return true;
+    if (user.gifts && user.gifts[item]) return true;
+    if (rule.hours && (user.playMs || 0) >= rule.hours * 3600 * 1000) return true;
+    if (rule.founder && user.firstSeen && user.firstSeen < FOUNDER_UNTIL) return true;
+    if (rule.month !== undefined && new Date(now()).getUTCMonth() === rule.month) return true;
+    return false;
   }
 
+  function unlocked(user) {
+    return Object.keys(UNLOCKS).filter((item) => owns(user, item));
+  }
+
+  function colour(value) {
+    return Number.isInteger(value) && value >= 0 && value <= 0xffffff ? value : null;
+  }
+
+  function extras(value, user) {
+    const v = value && typeof value === 'object' ? value : {};
+    const pick = (x, list, kind) => (list.includes(String(x)) && owns(user || {}, `${kind}:${x}`) ? String(x) : null);
+    return {
+      hat: pick(v.hat, HATS, 'hat'), wings: pick(v.wings, WINGS, 'wings'), trail: pick(v.trail, TRAILS, 'trail'),
+      accessory: pick(v.accessory, ACCESSORIES, 'accessory'), pet: pick(v.pet, PETS, 'pet'),
+      color: colour(v.color), nameColor: colour(v.nameColor)
+    };
+  }
+
+  // A position the client chose to share: x, y, z and a dimension. Anything else means "not sharing".
+  function position(value) {
+    if (!value || typeof value !== 'object') return null;
+    const [x, y, z] = [value.x, value.y, value.z].map(Number);
+    const dim = String(value.dim || '');
+    if (![x, y, z].every(Number.isFinite) || Math.abs(x) > 3e7 || Math.abs(z) > 3e7 || Math.abs(y) > 4096 || !DIMENSION_RE.test(dim)) return null;
+    return { x: Math.round(x), y: Math.round(y), z: Math.round(z), dim, at: now() };
+  }
   // A waypoint attached to a message: a name, a position and a dimension, nothing else.
   function waypoint(value) {
     if (value === undefined || value === null) return null;
@@ -246,11 +333,24 @@ function createHandler(deps = {}) {
   }
 
   async function sendMessage(me, body) {
-    const to = normUuid(body.to);
     const text = cleanText(body.text).slice(0, MAX_MESSAGE);
     if (!text) throw new HttpError(400, 'Empty message');
     const shared = waypoint(body.waypoint);
-    if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only message friends');
+    // To one friend, or (party: true) to everyone else in your party.
+    let recipients;
+    let partyId = null;
+    if (body.party) {
+      partyId = await get(`users/${me.u}/party`);
+      const p = partyId ? await get(`parties/${partyId}`) : null;
+      if (!p || !p.members || !p.members[me.u]) throw new HttpError(400, "You're not in a party");
+      recipients = Object.keys(p.members).filter((id) => id !== me.u);
+      if (!recipients.length) throw new HttpError(400, "There's nobody else in your party yet");
+    } else {
+      const to = normUuid(body.to);
+      if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only message friends');
+      if (await isBlockedBy(to, me.u)) throw new HttpError(403, "You can't message that player");
+      recipients = [to];
+    }
 
     // At most MESSAGES_PER_MINUTE per sender, so a stuck key can't flood someone's inbox.
     const window = (await get(`users/${me.u}/msgWindow`)) || { start: 0, count: 0 };
@@ -258,14 +358,16 @@ function createHandler(deps = {}) {
     const count = fresh ? 1 : window.count + 1;
     if (count > MESSAGES_PER_MINUTE) throw new HttpError(429, 'Slow down a little');
 
-    const inbox = (await get(`messages/${to}`)) || {};
-    const changes = {
-      [`users/${me.u}/msgWindow`]: { start: fresh ? now() : window.start, count },
-      [`messages/${to}/${messageKey()}`]: { from: me.u, name: me.n, text, at: now(), ...(shared ? { waypoint: shared } : {}) }
-    };
-    // Keep the inbox bounded if someone stays offline for a long time: drop the oldest.
-    const keys = Object.keys(inbox).sort();
-    for (const key of keys.slice(0, Math.max(0, keys.length - MAX_INBOX + 1))) changes[`messages/${to}/${key}`] = null;
+    const inboxes = await Promise.all(recipients.map((to) => get(`messages/${to}`)));
+    const changes = { [`users/${me.u}/msgWindow`]: { start: fresh ? now() : window.start, count } };
+    recipients.forEach((to, i) => {
+      changes[`messages/${to}/${messageKey()}`] = {
+        from: me.u, name: me.n, text, at: now(), ...(shared ? { waypoint: shared } : {}), ...(partyId ? { party: partyId } : {})
+      };
+      // Keep the inbox bounded if someone stays offline for a long time: drop the oldest.
+      const keys = Object.keys(inboxes[i] || {}).sort();
+      for (const key of keys.slice(0, Math.max(0, keys.length - MAX_INBOX + 1))) changes[`messages/${to}/${key}`] = null;
+    });
     await update(changes);
     return { sent: true };
   }
@@ -278,15 +380,18 @@ function createHandler(deps = {}) {
     const changes = {};
     for (const key of keys) changes[`messages/${uuid}/${key}`] = null;
     await update(changes);
-    return keys.map((key) => inbox[key]).filter(Boolean).map((m) => ({ from: m.from, name: m.name, text: m.text, at: m.at, ...(m.waypoint ? { waypoint: m.waypoint } : {}) }));
+    return keys.map((key) => inbox[key]).filter(Boolean).map((m) => ({ from: m.from, name: m.name, text: m.text, at: m.at, ...(m.waypoint ? { waypoint: m.waypoint } : {}),
+      ...(m.party ? { party: m.party } : {}), ...(m.gift ? { gift: m.gift } : {}), ...(m.shot ? { shot: m.shot } : {}) }));
   }
 
   async function friendState(uuid) {
     const links = (await get(`friends/${uuid}`)) || {};
     const ids = Object.keys(links);
-    const [users, presence] = await Promise.all([
+    const [users, presence, shares, blocks] = await Promise.all([
       Promise.all(ids.map((id) => get(`users/${id}/name`))),
-      Promise.all(ids.map((id) => get(`presence/${id}`)))
+      Promise.all(ids.map((id) => get(`presence/${id}`))),
+      Promise.all(ids.map((id) => (links[id] === 'friends' ? get(`locshare/${id}/${uuid}`) : null))),
+      get(`blocks/${uuid}`)
     ]);
     const friends = [], incoming = [], outgoing = [];
     ids.forEach((id, i) => {
@@ -295,12 +400,286 @@ function createHandler(deps = {}) {
         const p = presence[i];
         const online = !!p && !p.hidden && now() - p.at < ONLINE_MS;
         // lastSeen only counts time spent visible (see heartbeat), so it never gives away Appear Offline.
-        friends.push({ ...entry, online, server: online ? p.server : '', lastSeen: (p && p.seen) || 0 });
+        const f = { ...entry, online, server: online ? p.server : '', lastSeen: (p && p.seen) || 0 };
+        if (online) {
+          if (p.status) f.status = p.status;
+          if (p.dnd) f.dnd = true;
+          // Their position, only while they're sharing it with you (and it's fresh).
+          if (shares[i] && shares[i] > now() && p.pos && now() - p.pos.at < ONLINE_MS) f.pos = p.pos;
+        }
+        friends.push(f);
       } else if (links[id] === 'in') incoming.push(entry);
       else if (links[id] === 'out') outgoing.push(entry);
     });
     friends.sort((a, b) => (b.online - a.online) || a.name.localeCompare(b.name));
-    return { friends, incoming, outgoing };
+    const blockedIds = Object.keys(blocks || {});
+    const blockedNames = await Promise.all(blockedIds.map((id) => get(`users/${id}/name`)));
+    const sharing = (await get(`locshare/${uuid}`)) || {};
+    return {
+      friends, incoming, outgoing,
+      blocked: blockedIds.map((id, i) => ({ uuid: id, name: blockedNames[i] || '?' })),
+      // Who you're sharing your location with, and until when.
+      sharing: Object.entries(sharing).filter(([, until]) => until > now()).map(([id, until]) => ({ uuid: id, until }))
+    };
+  }
+
+  // ------------------------------------------------------------ parties
+
+  async function partyState(uuid, partyId) {
+    const invites = (await get(`partyInvites/${uuid}`)) || {};
+    const pending = Object.entries(invites).filter(([, inv]) => inv && now() - inv.at < PARTY_INVITE_MS)
+      .map(([id, inv]) => ({ party: id, from: inv.from }));
+    if (!partyId) return { invites: pending };
+    const party = await get(`parties/${partyId}`);
+    if (!party || !party.members || !party.members[uuid]) return { invites: pending };
+    const ids = Object.keys(party.members);
+    const [names, presence] = await Promise.all([
+      Promise.all(ids.map((id) => get(`users/${id}/name`))),
+      Promise.all(ids.map((id) => get(`presence/${id}`)))
+    ]);
+    const members = ids.map((id, i) => {
+      const p = presence[i];
+      // Appear Offline counts here too: hidden members show as offline, with no position.
+      const online = !!p && (!p.hidden || id === uuid) && now() - p.at < ONLINE_MS;
+      const m = { uuid: id, name: names[i] || '?', online, server: online ? p.server : '' };
+      if (online && p.pos && now() - p.pos.at < ONLINE_MS) m.pos = p.pos;
+      return m;
+    });
+    return { id: partyId, leader: party.leader, members, invites: pending };
+  }
+
+  async function party(me, body) {
+    const op = String(body.op || '');
+    const user = (await get(`users/${me.u}`)) || {};
+    const current = user.party ? await get(`parties/${user.party}`) : null;
+    const inParty = current && current.members && current.members[me.u];
+    if (op === 'create') {
+      if (inParty) throw new HttpError(400, "You're already in a party");
+      const id = crypto.randomBytes(6).toString('hex');
+      await update({ [`parties/${id}`]: { leader: me.u, created: now(), members: { [me.u]: now() } }, [`users/${me.u}/party`]: id });
+    } else if (op === 'invite') {
+      if (!inParty) throw new HttpError(400, 'Make a party first');
+      const to = normUuid(body.uuid);
+      if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only invite friends');
+      if (Object.keys(current.members).length >= MAX_PARTY) throw new HttpError(400, `Parties have room for ${MAX_PARTY}`);
+      await update({ [`partyInvites/${to}/${user.party}`]: { from: me.n, at: now() } });
+    } else if (op === 'accept') {
+      const id = String(body.party || '');
+      if (!/^[0-9a-f]{12}$/.test(id)) throw new HttpError(400, 'Bad party');
+      const inv = await get(`partyInvites/${me.u}/${id}`);
+      const target = await get(`parties/${id}`);
+      if (!inv || now() - inv.at >= PARTY_INVITE_MS || !target) throw new HttpError(400, 'That invite has expired');
+      if (Object.keys(target.members || {}).length >= MAX_PARTY) throw new HttpError(400, 'That party is full');
+      const changes = { [`parties/${id}/members/${me.u}`]: now(), [`users/${me.u}/party`]: id, [`partyInvites/${me.u}/${id}`]: null };
+      if (inParty) Object.assign(changes, leaveChanges(me.u, user.party, current));
+      await update(changes);
+    } else if (op === 'decline') {
+      await update({ [`partyInvites/${me.u}/${String(body.party || '').replace(/[^0-9a-f]/g, '') || 'x'}`]: null });
+    } else if (op === 'leave') {
+      if (inParty) await update(leaveChanges(me.u, user.party, current));
+      else await update({ [`users/${me.u}/party`]: null });
+    } else if (op === 'kick') {
+      const who = normUuid(body.uuid);
+      if (!inParty || current.leader !== me.u) throw new HttpError(403, 'Only the party leader can do that');
+      if (who === me.u || !current.members[who]) throw new HttpError(400, "They're not in your party");
+      await update({ [`parties/${user.party}/members/${who}`]: null, [`users/${who}/party`]: null });
+    } else {
+      throw new HttpError(400, 'Unknown party action');
+    }
+    const fresh = (await get(`users/${me.u}/party`)) || null;
+    return { party: await partyState(me.u, fresh) };
+  }
+
+  // Leaving hands the lead to whoever joined first, and an empty party is removed.
+  function leaveChanges(uuid, partyId, party) {
+    const rest = Object.entries(party.members).filter(([id]) => id !== uuid).sort((a, b) => a[1] - b[1]);
+    const changes = { [`users/${uuid}/party`]: null };
+    if (!rest.length) changes[`parties/${partyId}`] = null;
+    else {
+      changes[`parties/${partyId}/members/${uuid}`] = null;
+      if (party.leader === uuid) changes[`parties/${partyId}/leader`] = rest[0][0];
+    }
+    return changes;
+  }
+
+  // ------------------------------------------------------------ location sharing, blocking, invite codes
+
+  async function shareLocation(me, body) {
+    const to = normUuid(body.to);
+    const minutes = Math.max(0, Math.min(MAX_SHARE_MINUTES, Math.round(Number(body.minutes) || 0)));
+    if (minutes > 0 && !(await areFriends(me.u, to))) throw new HttpError(403, 'You can only share with friends');
+    await update({ [`locshare/${me.u}/${to}`]: minutes > 0 ? now() + minutes * 60 * 1000 : null });
+    return friendState(me.u);
+  }
+
+  async function isBlockedBy(target, me) {
+    return !!(await get(`blocks/${target}/${me}`));
+  }
+
+  function newInviteCode() {
+    // No look-alike characters (0/O, 1/I/L), so codes can be read out loud.
+    const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (const b of crypto.randomBytes(8)) code += alphabet[b % alphabet.length];
+    return code;
+  }
+
+  async function invite(me, body) {
+    const op = String(body.op || '');
+    if (op === 'create') {
+      const old = await get(`users/${me.u}/inviteCode`);
+      const code = newInviteCode();
+      const changes = { [`inviteCodes/${code}`]: { uuid: me.u, exp: now() + INVITE_CODE_MS }, [`users/${me.u}/inviteCode`]: code };
+      if (old && /^[A-Z0-9]{8}$/.test(old)) changes[`inviteCodes/${old}`] = null;
+      await update(changes);
+      return { code, expires: now() + INVITE_CODE_MS };
+    }
+    if (op === 'redeem') {
+      const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!/^[A-Z0-9]{8}$/.test(code)) throw new HttpError(400, 'Codes are 8 letters and numbers');
+      const entry = await get(`inviteCodes/${code}`);
+      if (!entry || entry.exp < now()) throw new HttpError(404, 'That code has expired or is wrong');
+      const other = entry.uuid;
+      if (other === me.u) throw new HttpError(400, "That's your own code");
+      if (await isBlockedBy(other, me.u)) throw new HttpError(404, 'That code has expired or is wrong');
+      const mine = (await get(`friends/${me.u}`)) || {};
+      if (Object.keys(mine).length >= MAX_FRIENDS) throw new HttpError(400, 'Friends list is full');
+      // Sharing a code is an invitation, so using it makes you friends straight away.
+      await update({ [`friends/${me.u}/${other}`]: 'friends', [`friends/${other}/${me.u}`]: 'friends' });
+      return friendState(me.u);
+    }
+    throw new HttpError(400, 'Unknown invite action');
+  }
+
+  // ------------------------------------------------------------ profiles, gifts, settings sync
+
+  async function profile(me, body) {
+    const id = normUuid(body.uuid);
+    if (id !== me.u && !(await areFriends(me.u, id)) && !isAdmin(me.u)) throw new HttpError(403, 'Profiles are for friends');
+    const [u, p] = await Promise.all([get(`users/${id}`), get(`presence/${id}`)]);
+    if (!u) throw new HttpError(404, 'No such player');
+    const visible = !!p && !p.hidden && now() - p.at < ONLINE_MS;
+    return {
+      uuid: id, name: u.name, bio: u.bio || '', online: visible || id === me.u, server: visible ? p.server : '',
+      status: visible ? p.status || '' : '', lastSeen: (p && p.seen) || 0, playMs: u.playMs || 0,
+      firstSeen: u.firstSeen || 0, capeStyle: u.cape ? u.capeStyle || 'classic' : null, extras: u.extras || null,
+      setup: u.setup || null, unlocked: unlocked(u)
+    };
+  }
+
+  async function setProfile(me, body) {
+    const changes = {};
+    if (body.bio !== undefined) changes[`users/${me.u}/bio`] = cleanText(body.bio).slice(0, MAX_BIO);
+    if (body.setup !== undefined) {
+      const setup = body.setup === null ? null : String(body.setup);
+      if (setup && (setup.length > MAX_SETUP || !/^[A-Za-z0-9+/=_-]+$/.test(setup))) throw new HttpError(400, 'Bad setup code');
+      changes[`users/${me.u}/setup`] = setup || null;
+    }
+    if (Object.keys(changes).length) await update(changes);
+    return profile(me, { uuid: me.u });
+  }
+
+  async function gift(me, body) {
+    const to = normUuid(body.to);
+    const item = String(body.item || '');
+    if (!UNLOCKS[item]) throw new HttpError(400, "That can't be gifted");
+    if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only give gifts to friends');
+    const [mine, theirs] = await Promise.all([get(`users/${me.u}`), get(`users/${to}`)]);
+    if (!owns(mine || {}, item)) throw new HttpError(403, "You can only give something you've unlocked");
+    if (owns(theirs || {}, item)) throw new HttpError(400, 'They already have it');
+    const day = (mine && mine.giftDay) || { start: 0, count: 0 };
+    const fresh = now() - day.start >= 24 * 3600 * 1000;
+    const count = fresh ? 1 : day.count + 1;
+    if (count > GIFTS_PER_DAY) throw new HttpError(429, 'One gift a day');
+    await update({
+      [`users/${to}/gifts/${item}`]: { from: me.n, at: now() },
+      [`users/${me.u}/giftDay`]: { start: fresh ? now() : day.start, count },
+      [`messages/${to}/${messageKey()}`]: { from: me.u, name: me.n, text: `Gave you a gift: ${item}`, at: now(), gift: item }
+    });
+    return { sent: true };
+  }
+
+  async function sync(me, body) {
+    const op = String(body.op || '');
+    if (op === 'put') {
+      const data = String(body.data || '');
+      if (!data || data.length > MAX_SYNC) throw new HttpError(400, 'Settings are too big to sync');
+      await update({ [`sync/${me.u}`]: { data, at: now() } });
+      return { saved: true, at: now() };
+    }
+    if (op === 'get') {
+      const saved = await get(`sync/${me.u}`);
+      return saved ? { data: saved.data, at: saved.at } : { data: null };
+    }
+    throw new HttpError(400, 'Unknown sync action');
+  }
+
+  // ------------------------------------------------------------ screenshots between friends
+
+  async function shot(me, body) {
+    const op = String(body.op || '');
+    if (op === 'send') {
+      const to = normUuid(body.to);
+      const data = String(body.jpeg || '');
+      if (!data || data.length > MAX_SHOT || !/^[A-Za-z0-9+/=]+$/.test(data)) throw new HttpError(400, 'That picture is too big');
+      if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only send pictures to friends');
+      if (await isBlockedBy(to, me.u)) throw new HttpError(403, "You can't send that player pictures");
+      const mine = (await get(`shotsBy/${me.u}`)) || {};
+      const recent = Object.values(mine).filter((at) => now() - at < 24 * 3600 * 1000).length;
+      if (recent >= SHOTS_PER_DAY) throw new HttpError(429, `${SHOTS_PER_DAY} pictures a day`);
+      const id = crypto.randomBytes(9).toString('hex');
+      const changes = {
+        [`shots/${id}`]: { from: me.u, to, data, at: now() },
+        [`shotsBy/${me.u}/${id}`]: now(),
+        [`messages/${to}/${messageKey()}`]: { from: me.u, name: me.n, text: 'Sent you a screenshot', at: now(), shot: id }
+      };
+      // Old pictures are cleared out as you send new ones.
+      for (const [old, at] of Object.entries(mine)) {
+        if (now() - at > SHOT_KEEP_MS) {
+          changes[`shots/${old}`] = null;
+          changes[`shotsBy/${me.u}/${old}`] = null;
+        }
+      }
+      await update(changes);
+      return { sent: true, id };
+    }
+    if (op === 'get') {
+      const id = String(body.id || '');
+      if (!/^[0-9a-f]{18}$/.test(id)) throw new HttpError(400, 'Bad picture');
+      const s = await get(`shots/${id}`);
+      if (!s || (s.to !== me.u && s.from !== me.u) || now() - s.at > SHOT_KEEP_MS) throw new HttpError(404, 'That picture is gone');
+      return { jpeg: s.data, at: s.at };
+    }
+    throw new HttpError(400, 'Unknown picture action');
+  }
+
+  // ------------------------------------------------------------ announcements, feature flags, bug reports
+
+  let noticeCache = null;
+  let noticeUntil = 0;
+
+  // The current announcement and feature flags, for every heartbeat. Cached briefly like the online count.
+  async function notices() {
+    if (noticeCache && now() < noticeUntil) return noticeCache;
+    const [a, flags] = await Promise.all([get('announcement'), get('flags')]);
+    noticeCache = { announcement: a && a.until > now() ? { id: a.id, text: a.text } : null, flags: flags || {} };
+    noticeUntil = now() + PLAYING_CACHE_MS;
+    return noticeCache;
+  }
+
+  async function bug(me, body) {
+    const text = cleanText(body.text).slice(0, MAX_BUG);
+    if (!text) throw new HttpError(400, 'Say what went wrong');
+    const log = String(body.log || '').slice(-MAX_BUG_LOG);
+    const window = (await get(`users/${me.u}/bugWindow`)) || { start: 0, count: 0 };
+    const fresh = now() - window.start >= 3600 * 1000;
+    const count = fresh ? 1 : window.count + 1;
+    if (count > BUGS_PER_HOUR) throw new HttpError(429, 'Thanks! Try again in a while');
+    await update({
+      [`users/${me.u}/bugWindow`]: { start: fresh ? now() : window.start, count },
+      [`bugs/${messageKey()}`]: { from: me.u, name: me.n, text, log, version: String(body.version || '').slice(0, 20), at: now() }
+    });
+    return { sent: true };
   }
 
   // Badges and capes for the players you can see. Only says whether someone uses Dragomir, nothing else.
@@ -312,7 +691,11 @@ function createHandler(deps = {}) {
       const r = records[i];
       if (r) {
         users[id] = { badge: r.badge !== false, cape: !!r.cape, capeStyle: r.cape ? (r.capeStyle || 'classic') : null };
-        if (r.extras) users[id].extras = { hat: r.extras.hat || null, wings: r.extras.wings || null, trail: r.extras.trail || null };
+        if (r.extras) {
+          const e = r.extras;
+          users[id].extras = { hat: e.hat || null, wings: e.wings || null, trail: e.trail || null, accessory: e.accessory || null,
+            pet: e.pet || null, color: e.color ?? null, nameColor: e.nameColor ?? null };
+        }
       }
     });
     return { users };
@@ -333,6 +716,8 @@ function createHandler(deps = {}) {
     if (op === 'add') {
       const target = await uuidForName(body.name);
       if (target === me.u) throw new HttpError(400, "You can't add yourself");
+      // Someone who blocked you looks like they don't use Dragomir, so a block isn't announced.
+      if (await isBlockedBy(target, me.u)) throw new HttpError(404, `${body.name} hasn't used Dragomir Client yet`);
       const mine = (await get(`friends/${me.u}`)) || {};
       if (mine[target] === 'friends') throw new HttpError(400, 'You are already friends');
       if (Object.keys(mine).length >= MAX_FRIENDS) throw new HttpError(400, 'Friends list is full');
@@ -349,6 +734,13 @@ function createHandler(deps = {}) {
       // Also declines a request or cancels one you sent.
       const target = normUuid(body.uuid);
       await update({ [`friends/${me.u}/${target}`]: null, [`friends/${target}/${me.u}`]: null });
+    } else if (op === 'block') {
+      const target = normUuid(body.uuid);
+      if (target === me.u) throw new HttpError(400, "You can't block yourself");
+      await update({ [`blocks/${me.u}/${target}`]: true, [`friends/${me.u}/${target}`]: null, [`friends/${target}/${me.u}`]: null,
+        [`locshare/${me.u}/${target}`]: null, [`locshare/${target}/${me.u}`]: null });
+    } else if (op === 'unblock') {
+      await update({ [`blocks/${me.u}/${normUuid(body.uuid)}`]: null });
     } else {
       throw new HttpError(400, 'Unknown friend action');
     }
@@ -392,7 +784,8 @@ function createHandler(deps = {}) {
         return {
           uuid: id, name: u.name || '?', lastSeen: u.lastSeen || 0, online, server: online ? p.server : '',
           hidden: !!(p && p.hidden), capeStyle: u.cape ? (u.capeStyle || 'classic') : null,
-          friends: Object.values(links).filter((v) => v === 'friends').length
+          friends: Object.values(links).filter((v) => v === 'friends').length,
+          playMs: u.playMs || 0, version: (p && p.version) || ''
         };
       }).sort((x, y) => (y.online - x.online) || (y.lastSeen - x.lastSeen));
       return { players };
@@ -413,6 +806,70 @@ function createHandler(deps = {}) {
         uuid, name: user.name, lastSeen: user.lastSeen || 0,
         online: !!p && now() - p.at < ONLINE_MS, server: p ? p.server : '', hidden: !!(p && p.hidden), friends
       };
+    }
+    if (op === 'announce') {
+      const text = cleanText(body.text).slice(0, MAX_ANNOUNCEMENT);
+      const hours = Math.max(1, Math.min(168, Number(body.hours) || 24));
+      if (!text) throw new HttpError(400, 'Write the announcement');
+      const announcement = { id: crypto.randomBytes(4).toString('hex'), text, at: now(), until: now() + hours * 3600 * 1000 };
+      await update({ announcement });
+      noticeCache = null;
+      return { announcement };
+    }
+    if (op === 'announceClear') {
+      await update({ announcement: null });
+      noticeCache = null;
+      return { announcement: null };
+    }
+    if (op === 'getNotices') {
+      const [announcement, flags] = await Promise.all([get('announcement'), get('flags')]);
+      return { announcement: announcement && announcement.until > now() ? announcement : null, flags: flags || {} };
+    }
+    if (op === 'flags') {
+      const flags = body.flags && typeof body.flags === 'object' ? body.flags : {};
+      const clean = {};
+      for (const [k, v] of Object.entries(flags)) {
+        if (!FLAG_RE.test(k)) throw new HttpError(400, `Bad flag name: ${k}`);
+        clean[k] = v === null ? null : !!v;
+      }
+      const changes = {};
+      for (const [k, v] of Object.entries(clean)) changes[`flags/${k}`] = v;
+      if (Object.keys(changes).length) await update(changes);
+      noticeCache = null;
+      return { flags: (await get('flags')) || {} };
+    }
+    if (op === 'usage') {
+      // How many players (seen in the last 30 days) have each mod turned on.
+      const usage = (await get('usage')) || {};
+      const counts = {}, versions = {};
+      let players = 0;
+      for (const u of Object.values(usage)) {
+        if (!u || now() - u.at > 30 * 24 * 3600 * 1000) continue;
+        players++;
+        for (const m of u.mods || []) counts[m] = (counts[m] || 0) + 1;
+        if (u.version) versions[u.version] = (versions[u.version] || 0) + 1;
+      }
+      const mods = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
+      return { players, mods, versions };
+    }
+    if (op === 'bugs') {
+      const bugs = (await get('bugs')) || {};
+      const list = Object.entries(bugs).sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 100)
+        .map(([key, b]) => ({ key, name: b.name, text: b.text, version: b.version, at: b.at, hasLog: !!b.log }));
+      return { bugs: list };
+    }
+    if (op === 'bug') {
+      const key = String(body.key || '');
+      if (!/^[0-9a-f-]{20,40}$/.test(key)) throw new HttpError(400, 'Bad report');
+      const b = await get(`bugs/${key}`);
+      if (!b) throw new HttpError(404, 'No such report');
+      return { key, ...b };
+    }
+    if (op === 'bugDelete') {
+      const key = String(body.key || '');
+      if (!/^[0-9a-f-]{20,40}$/.test(key)) throw new HttpError(400, 'Bad report');
+      await update({ [`bugs/${key}`]: null });
+      return { deleted: true };
     }
     throw new HttpError(400, 'Unknown admin action');
   }
@@ -439,6 +896,15 @@ function createHandler(deps = {}) {
       else if (action === 'friend') result = await friend(me, body);
       else if (action === 'message') result = await sendMessage(me, body);
       else if (action === 'inbox') result = { messages: await takeMessages(me.u) };
+      else if (action === 'party') result = await party(me, body);
+      else if (action === 'shareLocation') result = await shareLocation(me, body);
+      else if (action === 'invite') result = await invite(me, body);
+      else if (action === 'profile') result = await profile(me, body);
+      else if (action === 'setProfile') result = await setProfile(me, body);
+      else if (action === 'gift') result = await gift(me, body);
+      else if (action === 'sync') result = await sync(me, body);
+      else if (action === 'shot') result = await shot(me, body);
+      else if (action === 'bug') result = await bug(me, body);
       else throw new HttpError(400, 'Unknown action');
       return res.status(200).json(result);
     } catch (err) {
