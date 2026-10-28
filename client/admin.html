@@ -15,6 +15,7 @@
     :root {
       --bg: #09090b;
       --card-bg: rgba(18, 18, 22, 0.7);
+      --panel-bg: #111114;
       --border: rgba(255, 255, 255, 0.08);
       --border-hover: rgba(255, 255, 255, 0.18);
       --text-main: #f4f4f5;
@@ -37,80 +38,124 @@
       overflow-x: hidden;
     }
 
-    .wrap { width: 100%; max-width: 980px; margin: 0 auto; padding: 0 1rem; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 1.5rem 0; }
+    .wrap { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 1rem; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 1.5rem 0 1rem; flex-wrap: wrap; }
+    .topbar .right { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
-    .pill, button {
+    .pill, button, select {
       display: inline-flex; align-items: center; gap: 0.4rem;
       padding: 0.4rem 0.9rem; border-radius: 9999px;
       background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border);
-      color: var(--text-muted); text-decoration: none; font: 500 0.8rem/1.2 inherit; cursor: pointer;
+      color: var(--text-muted); text-decoration: none; font: inherit; font-weight: 500; font-size: 0.8rem; line-height: 1.2; cursor: pointer;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .pill:hover, button:hover { background: rgba(255, 255, 255, 0.09); border-color: var(--border-hover); color: var(--text-main); }
+    select { appearance: none; padding-right: 1.6rem; background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+      background-position: calc(100% - 13px) 55%, calc(100% - 9px) 55%; background-size: 4px 4px; background-repeat: no-repeat; }
+    select option { background: var(--panel-bg); color: var(--text-main); }
+    .pill:hover, button:hover, select:hover { background-color: rgba(255, 255, 255, 0.09); border-color: var(--border-hover); color: var(--text-main); }
     button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-    button.primary:hover { filter: brightness(1.1); }
+    button.primary:hover { filter: brightness(1.1); background: var(--accent); }
+    button.danger { color: var(--danger); border-color: rgba(248, 113, 113, 0.35); }
+    button.danger:hover { background: rgba(248, 113, 113, 0.12); color: var(--danger); }
     button:disabled { opacity: 0.5; cursor: default; }
+    button.small { padding: 0.25rem 0.65rem; font-size: 0.75rem; }
 
     h1 { font-size: clamp(1.75rem, 6vw, 2.5rem); font-weight: 700; letter-spacing: -0.03em; }
+    h2 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; margin: 2rem 0 0.4rem; }
+    h3 { font-size: 0.95rem; margin-bottom: 0.6rem; }
     .lead { margin-top: 0.5rem; color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; }
+    .muted { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
+    .subtle { color: var(--text-subtle); font-size: 0.8rem; }
 
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem 1.5rem; }
 
     /* Sign in */
     .login { max-width: 380px; margin: 4rem auto; }
     .login form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.25rem; }
-    input {
+    input, textarea {
       width: 100%; padding: 0.7rem 0.9rem; border-radius: 10px; border: 1px solid var(--border);
-      background: rgba(0, 0, 0, 0.35); color: var(--text-main); font: 500 0.95rem inherit;
+      background: rgba(0, 0, 0, 0.35); color: var(--text-main); font: inherit; font-weight: 500; font-size: 0.95rem;
     }
-    input:focus { outline: none; border-color: var(--accent); }
+    textarea { min-height: 70px; font-size: 0.9rem; line-height: 1.5; resize: vertical; }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
     .error { color: var(--danger); font-size: 0.85rem; min-height: 1.2em; }
+    .ok { color: var(--online); font-size: 0.85rem; min-height: 1.2em; }
 
-    /* Dashboard */
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1.5rem 0 1rem; }
+    /* Tabs */
+    .tabs { display: flex; gap: 0.35rem; overflow-x: auto; padding-bottom: 0.25rem; margin: 0.5rem 0 1.5rem; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tabs button { flex: none; }
+    .tabs button.active { background: rgba(120, 119, 198, 0.18); border-color: rgba(120, 119, 198, 0.55); color: var(--text-main); }
+    .count { background: var(--accent); color: #fff; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; padding: 0.05rem 0.4rem; }
+
+    /* Overview */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
     .stat { padding: 1rem 1.25rem; }
     .stat .value { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
     .stat .label { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.15rem; }
+    .grid2 { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .line { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+    .line:last-child { border-bottom: none; }
+    .line .meter { display: flex; gap: 0.6rem; align-items: center; width: 45%; flex: none; justify-content: flex-end; }
+    .bar { height: 6px; border-radius: 3px; background: var(--accent); }
+    .link { color: var(--text-main); cursor: pointer; font-weight: 600; background: none; border: none; padding: 0; border-radius: 0; font-size: 0.875rem; }
+    .link:hover { color: var(--accent); background: none; }
 
+    /* Players */
     .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
     .toolbar input { flex: 1 1 200px; width: auto; }
-    .toolbar label { color: var(--text-muted); font-size: 0.85rem; display: inline-flex; gap: 0.4rem; align-items: center; }
-    .toolbar label input { width: auto; flex: none; }
     .updated { color: var(--text-subtle); font-size: 0.8rem; margin-left: auto; }
-
     .table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border); background: var(--card-bg); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 640px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 760px; }
     th, td { text-align: left; padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    th { color: var(--text-subtle); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    th { color: var(--text-subtle); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; user-select: none; }
+    th:hover { color: var(--text-muted); }
+    th.sorted { color: var(--text-main); }
+    tbody tr { cursor: pointer; transition: background 0.15s; }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
     tr:last-child td { border-bottom: none; }
     td.name { font-weight: 600; }
-    td.muted { color: var(--text-muted); }
-    td.uuid { color: var(--text-subtle); font-family: ui-monospace, monospace; font-size: 0.75rem; }
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.45rem; background: var(--text-subtle); }
+    td.muted { color: var(--text-muted); font-size: 0.875rem; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.45rem; background: var(--text-subtle); flex: none; }
     .dot.online { background: var(--online); }
-    .tag { font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 9999px; margin-left: 0.4rem; }
-    .tag.hidden { color: var(--hidden); border: 1px solid rgba(251, 191, 36, 0.4); }
+    .tag { font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 9999px; margin-left: 0.4rem; border: 1px solid var(--border); color: var(--text-muted); }
+    .tag.hidden { color: var(--hidden); border-color: rgba(251, 191, 36, 0.4); }
+    .tag.banned { color: var(--danger); border-color: rgba(248, 113, 113, 0.4); }
+    .tag.new { color: var(--online); border-color: rgba(74, 222, 128, 0.4); }
+    .tag.admin { color: #c4b5fd; border-color: rgba(196, 181, 253, 0.4); }
     .empty { color: var(--text-muted); text-align: center; padding: 2rem; }
-
     .note { color: var(--text-subtle); font-size: 0.8rem; line-height: 1.6; margin: 1rem 0 3rem; }
 
-    /* Tools: announcement, feature switches, usage, bug reports */
-    h2 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 0.4rem; }
-    .tools { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-    .tools .card h3 { font-size: 0.95rem; margin-bottom: 0.6rem; }
+    /* Player panel */
+    .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(3px); z-index: 10; }
+    .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%); background: var(--panel-bg); border-left: 1px solid var(--border);
+      z-index: 11; overflow-y: auto; padding: 1.5rem; box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5); }
+    .drawer header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .drawer h2 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .drawer section { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+    .facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1rem; font-size: 0.85rem; }
+    .facts dt { color: var(--text-subtle); }
+    .facts dd { color: var(--text-main); word-break: break-word; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .chip { font-size: 0.75rem; padding: 0.2rem 0.55rem; border-radius: 9999px; border: 1px solid var(--border); color: var(--text-muted); }
+    .chip.on { color: var(--text-main); border-color: rgba(120, 119, 198, 0.55); background: rgba(120, 119, 198, 0.15); }
     .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.6rem; }
-    textarea { width: 100%; min-height: 70px; padding: 0.7rem 0.9rem; border-radius: 10px; border: 1px solid var(--border);
-      background: rgba(0, 0, 0, 0.35); color: var(--text-main); font: 500 0.9rem/1.5 inherit; resize: vertical; }
-    textarea:focus { outline: none; border-color: var(--accent); }
     .row input[type=number] { width: 90px; }
-    .muted { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
-    .flag { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
-    .flag:last-child { border-bottom: none; }
-    .bar { height: 6px; border-radius: 3px; background: var(--accent); }
+    .mono { font-family: ui-monospace, monospace; font-size: 0.75rem; color: var(--text-subtle); }
+
+    /* Inbox */
+    .msg { padding: 0.8rem 0; border-bottom: 1px solid var(--border); }
+    .msg:last-child { border-bottom: none; }
+    .msg .head { display: flex; justify-content: space-between; gap: 0.75rem; align-items: baseline; flex-wrap: wrap; }
+    .msg .text { margin-top: 0.3rem; line-height: 1.5; word-break: break-word; }
+    .msg.reply .text { color: var(--text-muted); }
+    .msg.unread { box-shadow: inset 3px 0 0 var(--accent); padding-left: 0.75rem; }
+
+    /* Tools */
+    .tools { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
     .bug { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
     .bug:last-child { border-bottom: none; }
-    .bug pre { margin-top: 0.5rem; max-height: 240px; overflow: auto; font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.35);
+    pre { margin-top: 0.5rem; max-height: 240px; overflow: auto; font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.35);
       padding: 0.6rem; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
     [hidden] { display: none !important; }
   </style>
@@ -119,7 +164,11 @@
   <div class="wrap">
     <nav class="topbar">
       <a href="/client" class="pill">&larr; Dragomir Client</a>
-      <button id="signOut" hidden>Sign out</button>
+      <div class="right" id="topRight" hidden>
+        <label class="muted" style="display:inline-flex;gap:0.4rem;align-items:center"><input type="checkbox" id="auto" checked style="width:auto"> Auto-refresh</label>
+        <button id="refresh">Refresh</button>
+        <button id="signOut">Sign out</button>
+      </div>
     </nav>
 
     <section class="login card" id="login">
@@ -133,77 +182,170 @@
     </section>
 
     <section id="dashboard" hidden>
-      <h1>Players</h1>
-      <p class="lead">Everyone who has used Dragomir Client, including players appearing offline (they're told admins can see them).</p>
-
-      <div class="stats">
-        <div class="card stat"><div class="value" id="statOnline">–</div><div class="label">Online now</div></div>
-        <div class="card stat"><div class="value" id="statHidden">–</div><div class="label">Appearing offline</div></div>
-        <div class="card stat"><div class="value" id="statTotal">–</div><div class="label">Players in total</div></div>
+      <div class="tabs" role="tablist">
+        <button data-tab="overview" class="active">Overview</button>
+        <button data-tab="players">Players</button>
+        <button data-tab="inbox">Inbox <span class="count" id="inboxCount" hidden></span></button>
+        <button data-tab="tools">Announcements &amp; switches</button>
+        <button data-tab="usage">Mod usage</button>
+        <button data-tab="bugs">Bug reports <span class="count" id="bugCount" hidden></span></button>
       </div>
 
-      <div class="toolbar">
-        <input type="search" id="filter" placeholder="Search by name or server" aria-label="Search players">
-        <label><input type="checkbox" id="onlineOnly"> Online only</label>
-        <button id="refresh">Refresh</button>
-        <span class="updated" id="updated"></span>
+      <!-- Overview -->
+      <div data-panel="overview">
+        <h1>Overview</h1>
+        <p class="lead">Dragomir Client right now. <span class="subtle" id="updated"></span></p>
+        <div class="stats">
+          <div class="card stat"><div class="value" id="statOnline">–</div><div class="label">Online now</div></div>
+          <div class="card stat"><div class="value" id="statHidden">–</div><div class="label">Appearing offline</div></div>
+          <div class="card stat"><div class="value" id="statActive">–</div><div class="label">Played in the last 24 h</div></div>
+          <div class="card stat"><div class="value" id="statNew">–</div><div class="label">New this week</div></div>
+          <div class="card stat"><div class="value" id="statTotal">–</div><div class="label">Players in total</div></div>
+          <div class="card stat"><div class="value" id="statHours">–</div><div class="label">Hours played (all)</div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Online now</h3><div id="ovOnline" class="muted">Loading…</div></div>
+          <div class="card"><h3>Servers being played</h3><div id="ovServers" class="muted">Loading…</div></div>
+          <div class="card"><h3>Versions (online and last 7 days)</h3><div id="ovVersions" class="muted">Loading…</div></div>
+          <div class="card"><h3>Newest players</h3><div id="ovNewest" class="muted">Loading…</div></div>
+        </div>
+        <p class="note">Online means the game checked in during the last 2½ minutes. Players appearing offline are told admins can still see them.</p>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Player</th><th>Status</th><th>Server</th><th>Cape</th><th>Friends</th><th>Played</th><th>Version</th><th>Last seen</th><th>UUID</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
+      <!-- Players -->
+      <div data-panel="players" hidden>
+        <h1>Players</h1>
+        <p class="lead">Everyone who has used Dragomir Client. Click a player for details, messages, cosmetics and bans.</p>
+        <div class="toolbar" style="margin-top:1rem">
+          <input type="search" id="filter" placeholder="Search by name, server, status or UUID" aria-label="Search players">
+          <select id="show" aria-label="Which players">
+            <option value="all">Everyone</option>
+            <option value="online">Online</option>
+            <option value="hidden">Appearing offline</option>
+            <option value="new">New this week</option>
+            <option value="active">Played in 24 h</option>
+            <option value="banned">Banned</option>
+          </select>
+          <select id="version" aria-label="Version"><option value="">Any version</option></select>
+          <button id="csv">Export CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr id="heads">
+              <th data-sort="name">Player</th><th data-sort="online">Status</th><th data-sort="server">Server</th><th data-sort="capeStyle">Cape</th>
+              <th data-sort="friends">Friends</th><th data-sort="playMs">Played</th><th data-sort="version">Version</th>
+              <th data-sort="firstSeen">Joined</th><th data-sort="lastSeen">Last seen</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <p class="note" id="shownCount"></p>
       </div>
-      <p class="note">Refreshes every 30 seconds while this page is open. Online means the game checked in during the last 2½ minutes.</p>
 
-      <h2>Tools</h2>
-      <p class="lead">Messages to every player, switches that turn client features off without a new release, and what players report.</p>
-      <div class="tools" style="margin-top:1rem">
-        <div class="card">
-          <h3>Announcement</h3>
-          <p class="muted" id="annCurrent">No announcement.</p>
-          <textarea id="annText" maxlength="200" placeholder="Shown once as a toast to every Dragomir player"></textarea>
-          <div class="row">
-            <label class="muted">Hours <input type="number" id="annHours" min="1" max="168" value="24"></label>
-            <button class="primary" id="annPost">Post</button>
-            <button id="annClear">Remove</button>
+      <!-- Inbox -->
+      <div data-panel="inbox" hidden>
+        <h1>Inbox</h1>
+        <p class="lead">Messages players sent with <code>/dm</code>, and your replies (from here, or <code>/dms</code> in game). Players get them in chat on whatever server they're on, or the next time they play.</p>
+        <div class="grid2" style="margin-top:1rem">
+          <div class="card">
+            <h3>Send a message</h3>
+            <input id="dmTo" placeholder="Player name" autocomplete="off" list="playerNames">
+            <datalist id="playerNames"></datalist>
+            <textarea id="dmText" maxlength="256" placeholder="Shown in their chat as a message from Dragomir" style="margin-top:0.5rem"></textarea>
+            <div class="row"><button class="primary" id="dmSend">Send</button><span class="subtle" id="dmLen">0 / 256</span></div>
+            <p class="error" id="dmError"></p>
           </div>
-          <p class="error" id="annError"></p>
+          <div class="card">
+            <h3>Conversations</h3>
+            <div id="threads" class="muted">Loading…</div>
+          </div>
         </div>
-        <div class="card">
-          <h3>Feature switches</h3>
-          <p class="muted">Turning one off disables it in every 1.11+ client within a minute.</p>
-          <div id="flags" style="margin-top:0.5rem"></div>
-          <p class="error" id="flagError"></p>
+        <div class="card" style="margin:0.75rem 0 3rem">
+          <div class="toolbar" style="margin:0"><h3 style="margin:0">All messages</h3><input type="search" id="inboxFilter" placeholder="Filter by player or text" style="margin-left:auto;max-width:260px"></div>
+          <div id="inbox" class="muted" style="margin-top:0.5rem">Loading…</div>
         </div>
       </div>
 
-      <h2>Mod usage</h2>
-      <p class="lead" id="usageLead">How many players (seen in the last 30 days) have each mod on.</p>
-      <div class="card" style="margin-top:1rem"><div id="usage" class="muted">Loading…</div></div>
+      <!-- Tools -->
+      <div data-panel="tools" hidden>
+        <h1>Announcements &amp; switches</h1>
+        <p class="lead">Messages to every player, and switches that turn client features off without a new release.</p>
+        <div class="tools" style="margin:1rem 0 3rem">
+          <div class="card">
+            <h3>Announcement</h3>
+            <p class="muted" id="annCurrent">No announcement.</p>
+            <textarea id="annText" maxlength="200" placeholder="Shown once as a toast to every Dragomir player" style="margin-top:0.5rem"></textarea>
+            <div class="row">
+              <label class="muted">Hours <input type="number" id="annHours" min="1" max="168" value="24"></label>
+              <button class="primary" id="annPost">Post</button>
+              <button id="annClear">Remove</button>
+            </div>
+            <p class="error" id="annError"></p>
+          </div>
+          <div class="card">
+            <h3>Feature switches</h3>
+            <p class="muted">Turning one off disables it in every 1.11+ client within a minute.</p>
+            <div id="flags" style="margin-top:0.5rem"></div>
+            <p class="error" id="flagError"></p>
+          </div>
+        </div>
+      </div>
 
-      <h2>Bug reports</h2>
-      <p class="lead">Sent from Client Settings → Report a Bug, with the end of the game log.</p>
-      <div class="card" style="margin:1rem 0 3rem"><div id="bugs" class="muted">Loading…</div></div>
+      <!-- Usage -->
+      <div data-panel="usage" hidden>
+        <h1>Mod usage</h1>
+        <p class="lead" id="usageLead">How many players (seen in the last 30 days) have each mod on.</p>
+        <div class="toolbar" style="margin-top:1rem"><input type="search" id="usageFilter" placeholder="Filter mods"></div>
+        <div class="grid2" style="margin-bottom:3rem">
+          <div class="card"><h3>Mods</h3><div id="usage" class="muted">Loading…</div></div>
+          <div class="card"><h3>Versions</h3><div id="usageVersions" class="muted">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- Bugs -->
+      <div data-panel="bugs" hidden>
+        <h1>Bug reports</h1>
+        <p class="lead">Sent from Client Settings → Report a Bug and the crash screen, with the end of the game log.</p>
+        <div class="toolbar" style="margin-top:1rem"><input type="search" id="bugFilter" placeholder="Filter by player, version or text"></div>
+        <div class="card" style="margin-bottom:3rem"><div id="bugs" class="muted">Loading…</div></div>
+      </div>
     </section>
   </div>
+
+  <!-- Player panel -->
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" hidden aria-label="Player details"></aside>
 
   <script>
     const API = '/api/client';
     const TOKEN_KEY = 'dragomir_client_admin_token';
+    const SEEN_KEY = 'dragomir_client_admin_seen';
+    const DAY = 86400000;
     let players = [];
+    let support = [];
+    let bugs = [];
+    let usage = null;
+    let unlockItems = [];
+    let sort = { key: 'online', dir: -1 };
     let timer = null;
+    let openPlayer = null;
 
     const $ = (id) => document.getElementById(id);
-    const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const token = () => sessionStorage.getItem(TOKEN_KEY);
+    const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
 
     async function call(body) {
-      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, token: token() }) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { const e = new Error(data.error || `Error ${res.status}`); e.status = res.status; throw e; }
+      if (!res.ok) {
+        const e = new Error(data.error || `Error ${res.status}`); e.status = res.status;
+        if (body.action === 'admin' && (res.status === 401 || res.status === 403)) showLogin('Your session ended. Sign in again.');
+        throw e;
+      }
       return data;
     }
+    const admin = (op, extra = {}) => call({ action: 'admin', op, ...extra });
 
     function ago(ms) {
       if (!ms) return 'never';
@@ -211,13 +353,341 @@
       if (s < 60) return 'just now';
       if (s < 3600) return `${Math.floor(s / 60)} min ago`;
       if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-      return `${Math.floor(s / 86400)} days ago`;
+      if (s < 86400 * 60) return `${Math.floor(s / 86400)} days ago`;
+      return new Date(ms).toLocaleDateString();
     }
-
     function hours(ms) {
       const h = (ms || 0) / 3600000;
       return h < 1 ? `${Math.round(h * 60)} min` : `${h.toFixed(h < 10 ? 1 : 0)} h`;
     }
+    const cap = (s) => (s ? s.replace(/^anim_/, '').replace(/^./, (c) => c.toUpperCase()) : '');
+    const meter = (count, top) => `<span class="meter"><span class="bar" style="width:${Math.max(4, count / (top || 1) * 100)}%"></span>${count}</span>`;
+    const isNew = (p) => p.firstSeen && Date.now() - p.firstSeen < 7 * DAY;
+    const isActive = (p) => p.online || (p.lastSeen && Date.now() - p.lastSeen < DAY);
+
+    // ------------------------------------------------------------ tabs
+
+    function showTab(name) {
+      document.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== name; });
+      if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+      if (name === 'inbox') { store.set(SEEN_KEY, String(Date.now())); renderInbox(); }
+    }
+    document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+
+    // ------------------------------------------------------------ loading
+
+    async function loadPlayers() {
+      players = (await admin('players')).players;
+      $('updated').textContent = `Updated ${new Date().toLocaleTimeString()}.`;
+      const versions = [...new Set(players.map((p) => p.version).filter(Boolean))].sort().reverse();
+      const chosen = $('version').value;
+      $('version').innerHTML = '<option value="">Any version</option>' + versions.map((v) => `<option${v === chosen ? ' selected' : ''}>${esc(v)}</option>`).join('');
+      $('playerNames').innerHTML = players.map((p) => `<option value="${esc(p.name)}">`).join('');
+      renderOverview();
+      renderPlayers();
+    }
+
+    async function loadSupport() {
+      support = (await admin('support')).messages;
+      renderInbox();
+    }
+
+    async function loadAll() {
+      $('refresh').disabled = true;
+      try {
+        await Promise.all([loadPlayers(), loadSupport(), loadBugs()]);
+      } catch (e) {
+        $('updated').textContent = `Couldn't refresh: ${e.message}`;
+      } finally {
+        $('refresh').disabled = false;
+      }
+    }
+
+    // ------------------------------------------------------------ overview
+
+    function renderOverview() {
+      const online = players.filter((p) => p.online);
+      $('statOnline').textContent = online.length;
+      $('statHidden').textContent = online.filter((p) => p.hidden).length;
+      $('statActive').textContent = players.filter(isActive).length;
+      $('statNew').textContent = players.filter(isNew).length;
+      $('statTotal').textContent = players.length;
+      $('statHours').textContent = Math.round(players.reduce((t, p) => t + (p.playMs || 0), 0) / 3600000).toLocaleString();
+
+      $('ovOnline').innerHTML = online.length ? online.slice(0, 12).map((p) => `<div class="line"><span style="display:flex;align-items:center;min-width:0">
+          <span class="dot online"></span><button class="link" data-player="${esc(p.uuid)}">${esc(p.name)}</button>${p.hidden ? '<span class="tag hidden">hidden</span>' : ''}</span>
+          <span class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.server || '—')}</span></div>`).join('')
+        + (online.length > 12 ? `<p class="subtle" style="margin-top:0.5rem">and ${online.length - 12} more</p>` : '')
+        : 'Nobody online right now.';
+
+      const servers = {};
+      for (const p of online) { const s = p.server || 'In the menus'; servers[s] = (servers[s] || 0) + 1; }
+      const sv = Object.entries(servers).sort((a, b) => b[1] - a[1]);
+      $('ovServers').innerHTML = sv.length ? sv.slice(0, 8).map(([s, c]) => `<div class="line"><span>${esc(s)}</span>${meter(c, sv[0][1])}</div>`).join('') : 'Nobody online right now.';
+
+      const versions = {};
+      for (const p of players) if (p.version && (p.online || Date.now() - p.lastSeen < 7 * DAY)) versions[p.version] = (versions[p.version] || 0) + 1;
+      const vv = Object.entries(versions).sort((a, b) => b[1] - a[1]);
+      $('ovVersions').innerHTML = vv.length ? vv.map(([v, c]) => `<div class="line"><span>${esc(v)}</span>${meter(c, vv[0][1])}</div>`).join('') : 'No versions reported yet.';
+
+      const newest = [...players].filter((p) => p.firstSeen).sort((a, b) => b.firstSeen - a.firstSeen).slice(0, 8);
+      $('ovNewest').innerHTML = newest.length ? newest.map((p) => `<div class="line"><button class="link" data-player="${esc(p.uuid)}">${esc(p.name)}</button>
+          <span class="muted">${ago(p.firstSeen)}</span></div>`).join('') : 'No players yet.';
+    }
+
+    // ------------------------------------------------------------ players
+
+    function shownPlayers() {
+      const q = $('filter').value.trim().toLowerCase();
+      const show = $('show').value, version = $('version').value;
+      return players.filter((p) => {
+        if (show === 'online' && !p.online) return false;
+        if (show === 'hidden' && !(p.online && p.hidden)) return false;
+        if (show === 'new' && !isNew(p)) return false;
+        if (show === 'active' && !isActive(p)) return false;
+        if (show === 'banned' && !p.banned) return false;
+        if (version && p.version !== version) return false;
+        return !q || [p.name, p.server, p.status, p.uuid].some((v) => (v || '').toLowerCase().includes(q));
+      }).sort((a, b) => {
+        let x = a[sort.key], y = b[sort.key];
+        if (typeof x === 'string' || typeof y === 'string') return sort.dir * String(x || '').localeCompare(String(y || ''));
+        x = Number(x || 0); y = Number(y || 0);
+        return sort.dir * (x - y) || b.lastSeen - a.lastSeen;
+      });
+    }
+
+    function renderPlayers() {
+      const shown = shownPlayers();
+      document.querySelectorAll('#heads th').forEach((th) => {
+        th.classList.toggle('sorted', th.dataset.sort === sort.key);
+        th.textContent = th.textContent.replace(/ [↑↓]$/, '') + (th.dataset.sort === sort.key ? (sort.dir > 0 ? ' ↑' : ' ↓') : '');
+      });
+      $('rows').innerHTML = shown.length ? shown.map((p) => `<tr data-player="${esc(p.uuid)}">
+          <td class="name">${esc(p.name)}${p.banned ? '<span class="tag banned">banned</span>' : ''}${isNew(p) ? '<span class="tag new">new</span>' : ''}</td>
+          <td><span class="dot${p.online ? ' online' : ''}"></span>${p.online ? (p.dnd ? 'Busy' : 'Online') : 'Offline'}${p.online && p.hidden ? '<span class="tag hidden">appearing offline</span>' : ''}${p.status ? `<span class="tag">${esc(p.status)}</span>` : ''}</td>
+          <td class="muted">${esc(p.server || '—')}</td>
+          <td class="muted">${p.capeStyle ? esc(cap(p.capeStyle)) : '—'}</td>
+          <td class="muted">${p.friends}</td>
+          <td class="muted">${hours(p.playMs)}</td>
+          <td class="muted">${esc(p.version || '—')}</td>
+          <td class="muted">${p.firstSeen ? ago(p.firstSeen) : '—'}</td>
+          <td class="muted">${p.online ? 'now' : ago(p.lastSeen)}</td>
+        </tr>`).join('') : `<tr><td class="empty" colspan="9">${players.length ? 'No players match.' : 'No players yet.'}</td></tr>`;
+      $('shownCount').textContent = `Showing ${shown.length} of ${players.length}. Click a column to sort.`;
+    }
+
+    $('heads').addEventListener('click', (e) => {
+      const key = e.target.dataset.sort;
+      if (!key) return;
+      sort = sort.key === key ? { key, dir: -sort.dir } : { key, dir: ['name', 'server', 'capeStyle', 'version'].includes(key) ? 1 : -1 };
+      renderPlayers();
+    });
+    ['filter', 'show', 'version'].forEach((id) => $(id).addEventListener('input', renderPlayers));
+
+    $('csv').addEventListener('click', () => {
+      const cols = ['name', 'uuid', 'online', 'hidden', 'server', 'capeStyle', 'friends', 'playMs', 'version', 'firstSeen', 'lastSeen', 'banned'];
+      const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const rows = shownPlayers().map((p) => cols.map((c) => cell(['firstSeen', 'lastSeen'].includes(c) && p[c] ? new Date(p[c]).toISOString() : p[c])).join(','));
+      const blob = new Blob([[cols.join(','), ...rows].join('\n')], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `dragomir-players-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // ------------------------------------------------------------ player panel
+
+    document.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-player]');
+      if (el && !e.target.closest('#drawer')) openDrawer(el.dataset.player);
+    });
+    $('scrim').addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('drawer').hidden) closeDrawer(); });
+
+    function closeDrawer() {
+      $('drawer').hidden = true;
+      $('scrim').hidden = true;
+      openPlayer = null;
+    }
+
+    async function openDrawer(uuid) {
+      openPlayer = uuid;
+      $('scrim').hidden = false;
+      $('drawer').hidden = false;
+      $('drawer').innerHTML = '<p class="muted">Loading…</p>';
+      try {
+        if (!unlockItems.length) unlockItems = (await admin('unlocks')).items;
+        const p = await admin('player', { uuid });
+        if (openPlayer === uuid) renderDrawer(p);
+      } catch (e) {
+        $('drawer').innerHTML = `<p class="error">${esc(e.message)}</p><button id="dClose">Close</button>`;
+        $('dClose').onclick = closeDrawer;
+      }
+    }
+
+    function renderDrawer(p) {
+      const e = p.extras || {};
+      const wearing = [e.hat && `${cap(e.hat)} hat`, e.wings && `${cap(e.wings)} wings`, e.trail && `${cap(e.trail)} trail`,
+        e.accessory && cap(e.accessory), e.pet && `${cap(e.pet)} pet`].filter(Boolean);
+      const friends = p.links.filter((l) => l.state === 'friends');
+      const requests = p.links.filter((l) => l.state !== 'friends');
+      const thread = support.filter((m) => m.from === p.uuid || m.to === p.uuid).slice(0, 6);
+      $('drawer').innerHTML = `
+        <header>
+          <div>
+            <h2><span class="dot${p.online ? ' online' : ''}"></span>${esc(p.name)}${p.admin ? '<span class="tag admin">admin</span>' : ''}${p.banned ? '<span class="tag banned">banned</span>' : ''}${p.online && p.hidden ? '<span class="tag hidden">appearing offline</span>' : ''}</h2>
+            <p class="muted" style="margin-top:0.3rem">${p.online ? `Online${p.dnd ? ' · Do Not Disturb' : ''} · ${esc(p.server || 'in the menus')}` : `Last seen ${ago(p.lastSeen)}`}${p.status ? ` · “${esc(p.status)}”` : ''}</p>
+          </div>
+          <button id="dClose" aria-label="Close">✕</button>
+        </header>
+        <div class="row"><span class="mono">${esc(p.uuid)}</span><button class="small" id="dCopy">Copy UUID</button>
+          <a class="pill small" style="padding:0.25rem 0.65rem;font-size:0.75rem" href="https://namemc.com/profile/${esc(p.uuid)}" target="_blank" rel="noopener">NameMC ↗</a></div>
+        <section>
+          <dl class="facts">
+            <dt>Joined</dt><dd>${p.firstSeen ? `${new Date(p.firstSeen).toLocaleDateString()} (${ago(p.firstSeen)})` : '—'}</dd>
+            <dt>Played</dt><dd>${hours(p.playMs)}</dd>
+            <dt>Version</dt><dd>${esc(p.version || '—')}</dd>
+            <dt>Cape</dt><dd>${p.capeStyle ? esc(cap(p.capeStyle)) : 'none'}</dd>
+            <dt>Wearing</dt><dd>${wearing.length ? esc(wearing.join(', ')) : 'nothing else'}</dd>
+            <dt>Badge</dt><dd>${p.badge ? 'shown' : 'hidden'}</dd>
+            <dt>Party</dt><dd>${p.party ? esc(p.party) : 'none'}</dd>
+            <dt>Friends</dt><dd>${friends.length}${requests.length ? ` (+${requests.length} pending)` : ''} · blocked ${p.blocked} · sharing location with ${p.sharingWith}</dd>
+            <dt>Bio</dt><dd>${p.bio ? esc(p.bio) : '—'}</dd>
+            ${p.banned ? `<dt>Banned</dt><dd>${ago(p.banned.at)}${p.banned.reason ? `: ${esc(p.banned.reason)}` : ''}</dd>` : ''}
+          </dl>
+        </section>
+        <section>
+          <h3>Message ${esc(p.name)}</h3>
+          <textarea id="dMsg" maxlength="256" placeholder="Shown in their chat as a message from Dragomir"></textarea>
+          <div class="row"><button class="primary" id="dSend">Send</button><span id="dMsgState" class="subtle"></span></div>
+          ${thread.length ? `<div style="margin-top:0.75rem">${thread.map((m) => `<div class="msg${m.reply ? ' reply' : ''}"><div class="head">
+            <strong>${esc(m.reply ? `You → ${p.name}` : m.name)}</strong><span class="subtle">${ago(m.at)}</span></div><div class="text">${esc(m.text)}</div></div>`).join('')}</div>` : ''}
+        </section>
+        <section>
+          <h3>Locked cosmetics</h3>
+          <p class="muted">Click to give or take back. Giving one sends them a gift message.</p>
+          <div class="chips" id="dUnlocks" style="margin-top:0.5rem">${unlockItems.map((item) => {
+            const has = p.unlocked.includes(item), gift = p.gifts.includes(item);
+            return `<button class="chip${has ? ' on' : ''}" data-item="${esc(item)}" data-has="${gift ? 1 : 0}" title="${has ? (gift ? 'Given (click to take back)' : 'Earned by playing') : 'Locked (click to give)'}">${has ? '✓ ' : ''}${esc(item.replace(':', ' · '))}</button>`;
+          }).join('')}</div>
+          <p class="error" id="dUnlockError"></p>
+        </section>
+        <section>
+          <h3>Friends</h3>
+          <div class="chips">${friends.length ? friends.map((f) => `<button class="chip" data-open="${esc(f.uuid)}">${esc(f.name)}</button>`).join('') : '<span class="muted">None yet.</span>'}</div>
+          ${p.mods.length ? `<h3 style="margin-top:1rem">Mods on (${p.mods.length})</h3><div class="chips">${p.mods.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}
+        </section>
+        <section>
+          <h3>Moderation</h3>
+          <div class="row" style="margin-top:0">
+            <button id="dReset">Clear bio, status &amp; setup</button>
+          </div>
+          ${p.admin ? '<p class="muted" style="margin-top:0.6rem">Admins can\'t be banned.</p>' : p.banned
+            ? '<div class="row"><button class="primary" id="dUnban">Unban</button></div>'
+            : '<div class="row"><input id="dReason" maxlength="120" placeholder="Reason (only shown here)" style="flex:1 1 200px;width:auto"><button class="danger" id="dBan">Ban from Dragomir online features</button></div>'}
+          <p class="muted" style="margin-top:0.5rem">A ban signs them out within a minute and stops them signing in. Friends, messages, parties and their badge and cape stop working; the client itself keeps working.</p>
+          <p class="error" id="dModError"></p>
+        </section>`;
+
+      $('dClose').onclick = closeDrawer;
+      $('dCopy').onclick = () => navigator.clipboard.writeText(p.uuid).then(() => { $('dCopy').textContent = 'Copied'; });
+      $('dSend').onclick = async () => {
+        $('dMsgState').textContent = '';
+        try {
+          await admin('message', { uuid: p.uuid, text: $('dMsg').value });
+          $('dMsg').value = '';
+          $('dMsgState').textContent = 'Sent';
+          await loadSupport();
+          openDrawer(p.uuid);
+        } catch (err) { $('dMsgState').textContent = err.message; }
+      };
+      $('dUnlocks').onclick = async (ev) => {
+        const b = ev.target.closest('[data-item]');
+        if (!b) return;
+        const earned = b.classList.contains('on') && b.dataset.has !== '1';
+        if (earned) { $('dUnlockError').textContent = 'They earned that one by playing; it can only be taken back if it was given.'; return; }
+        const op = b.dataset.has === '1' ? 'revoke' : 'grant';
+        if (op === 'revoke' && !confirm(`Take ${b.dataset.item} back from ${p.name}?`)) return;
+        try { await admin(op, { uuid: p.uuid, item: b.dataset.item }); openDrawer(p.uuid); }
+        catch (err) { $('dUnlockError').textContent = err.message; }
+      };
+      $('drawer').querySelectorAll('[data-open]').forEach((b) => { b.onclick = () => openDrawer(b.dataset.open); });
+      $('dReset').onclick = async () => {
+        if (!confirm(`Clear ${p.name}'s bio, status and shared setup code?`)) return;
+        try { await admin('resetProfile', { uuid: p.uuid }); openDrawer(p.uuid); } catch (err) { $('dModError').textContent = err.message; }
+      };
+      if ($('dBan')) $('dBan').onclick = async () => {
+        if (!confirm(`Ban ${p.name} from Dragomir's online features?`)) return;
+        try { await admin('ban', { uuid: p.uuid, reason: $('dReason').value }); await loadPlayers(); openDrawer(p.uuid); }
+        catch (err) { $('dModError').textContent = err.message; }
+      };
+      if ($('dUnban')) $('dUnban').onclick = async () => {
+        try { await admin('unban', { uuid: p.uuid }); await loadPlayers(); openDrawer(p.uuid); }
+        catch (err) { $('dModError').textContent = err.message; }
+      };
+    }
+
+    // ------------------------------------------------------------ inbox
+
+    function renderInbox() {
+      const seen = Number(store.get(SEEN_KEY) || 0);
+      const unread = support.filter((m) => !m.reply && m.at > seen).length;
+      const onInbox = !document.querySelector('[data-panel="inbox"]').hidden;
+      $('inboxCount').hidden = !unread || onInbox;
+      $('inboxCount').textContent = unread;
+
+      // One line per player: their latest message or your latest reply.
+      const threads = new Map();
+      for (const m of support) {
+        const who = m.reply ? m.to : m.from;
+        if (!threads.has(who)) threads.set(who, { uuid: who, name: m.reply ? m.toName : m.name, last: m, count: 0 });
+        threads.get(who).count++;
+      }
+      $('threads').innerHTML = threads.size ? [...threads.values()].slice(0, 10).map((t) => `<div class="line">
+          <span style="min-width:0"><button class="link" data-player="${esc(t.uuid)}">${esc(t.name)}</button>
+          <span class="subtle"> · ${t.count} message${t.count === 1 ? '' : 's'}</span><br>
+          <span class="muted" style="font-size:0.8rem">${t.last.reply ? 'You: ' : ''}${esc(t.last.text.length > 60 ? `${t.last.text.slice(0, 60)}…` : t.last.text)}</span></span>
+          <button class="small" data-reply="${esc(t.name)}">Reply</button></div>`).join('') : 'No messages yet. Players can write to you with /dm in game.';
+
+      const q = $('inboxFilter').value.trim().toLowerCase();
+      const list = support.filter((m) => !q || [m.name, m.toName, m.text].some((v) => (v || '').toLowerCase().includes(q)));
+      $('inbox').innerHTML = list.length ? list.map((m) => `<div class="msg${m.reply ? ' reply' : ''}${!m.reply && m.at > seen ? ' unread' : ''}" data-key="${esc(m.key)}">
+          <div class="head"><span>${m.reply ? `<strong>${esc(m.name)}</strong> <span class="subtle">→</span> <button class="link" data-player="${esc(m.to)}">${esc(m.toName || '?')}</button>`
+            : `<button class="link" data-player="${esc(m.from)}">${esc(m.name)}</button>`}</span>
+          <span class="subtle">${ago(m.at)}</span></div>
+          <div class="text">${esc(m.text)}</div>
+          <div class="row">${m.reply ? '' : `<button class="small" data-reply="${esc(m.name)}">Reply</button>`}<button class="small" data-del>Delete</button></div>
+        </div>`).join('') : (support.length ? 'No messages match.' : 'Nothing here yet.');
+    }
+
+    $('inboxFilter').addEventListener('input', renderInbox);
+    document.querySelector('[data-panel="inbox"]').addEventListener('click', async (e) => {
+      const reply = e.target.closest('[data-reply]');
+      if (reply) { $('dmTo').value = reply.dataset.reply; $('dmText').focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      if (e.target.closest('[data-del]')) {
+        const box = e.target.closest('.msg');
+        if (!confirm('Delete this message from the inbox? (The player keeps it.)')) return;
+        await admin('supportDelete', { key: box.dataset.key });
+        support = support.filter((m) => m.key !== box.dataset.key);
+        renderInbox();
+      }
+    });
+    $('dmText').addEventListener('input', () => { $('dmLen').textContent = `${$('dmText').value.length} / 256`; });
+    $('dmSend').addEventListener('click', async () => {
+      $('dmError').textContent = '';
+      $('dmSend').disabled = true;
+      try {
+        await admin('message', { name: $('dmTo').value.trim(), text: $('dmText').value });
+        $('dmText').value = '';
+        $('dmLen').textContent = '0 / 256';
+        await loadSupport();
+      } catch (e) { $('dmError').textContent = e.message; }
+      finally { $('dmSend').disabled = false; }
+    });
+
+    // ------------------------------------------------------------ announcements, switches, usage, bugs
 
     // Client features an admin can switch off (Dragomir Client checks these names).
     const FLAGS = {
@@ -226,84 +696,113 @@
     };
 
     async function loadTools() {
-      const token = sessionStorage.getItem(TOKEN_KEY);
-      if (!token) return;
       try {
-        const n = await call({ action: 'admin', op: 'getNotices', token });
+        const n = await admin('getNotices');
         $('annCurrent').textContent = n.announcement
           ? `Showing until ${new Date(n.announcement.until).toLocaleString()}: "${n.announcement.text}"` : 'No announcement.';
-        $('flags').innerHTML = Object.entries(FLAGS).map(([k, label]) => `<div class="flag"><span>${escapeHtml(label)}</span>
-          <label class="muted"><input type="checkbox" data-flag="${k}" ${n.flags[k] === false ? '' : 'checked'}> on</label></div>`).join('');
-        const u = await call({ action: 'admin', op: 'usage', token });
-        $('usageLead').textContent = `How many of the ${u.players} players seen in the last 30 days have each mod on. Versions: `
-          + (Object.entries(u.versions).map(([v, c]) => `${v} (${c})`).join(', ') || 'none yet') + '.';
-        const top = u.mods[0] ? u.mods[0].count : 1;
-        $('usage').innerHTML = u.mods.length ? u.mods.map((m) => `<div class="flag"><span>${escapeHtml(m.name)}</span>
-          <span style="display:flex;gap:0.6rem;align-items:center;width:45%"><span class="bar" style="width:${Math.max(4, m.count / top * 100)}%"></span>${m.count}</span></div>`).join('')
-          : 'No usage yet. Clients send it with their first heartbeat after starting.';
-        const b = await call({ action: 'admin', op: 'bugs', token });
-        $('bugs').innerHTML = b.bugs.length ? b.bugs.map((r) => `<div class="bug" data-key="${escapeHtml(r.key)}">
-          <div><strong>${escapeHtml(r.name)}</strong> <span class="muted">· ${escapeHtml(r.version || '?')} · ${ago(r.at)}</span></div>
-          <div style="margin-top:0.3rem">${escapeHtml(r.text)}</div>
-          <div class="row">${r.hasLog ? '<button data-act="log">Show log</button>' : ''}<button data-act="del">Delete</button></div></div>`).join('')
-          : 'No reports.';
-      } catch (e) {
-        if (e.status === 401 || e.status === 403) showLogin('Your session ended. Sign in again.');
-      }
+        $('flags').innerHTML = Object.entries(FLAGS).map(([k, label]) => `<div class="line"><span>${esc(label)}</span>
+          <label class="muted"><input type="checkbox" data-flag="${k}" ${n.flags[k] === false ? '' : 'checked'} style="width:auto"> on</label></div>`).join('');
+        usage = await admin('usage');
+        renderUsage();
+      } catch { /* the session check in call() handles sign-outs */ }
     }
 
-    function render() {
-      const query = $('filter').value.trim().toLowerCase();
-      const onlineOnly = $('onlineOnly').checked;
-      const shown = players.filter((p) => (!onlineOnly || p.online)
-        && (!query || p.name.toLowerCase().includes(query) || (p.server || '').toLowerCase().includes(query)));
-      $('statOnline').textContent = players.filter((p) => p.online).length;
-      $('statHidden').textContent = players.filter((p) => p.online && p.hidden).length;
-      $('statTotal').textContent = players.length;
-      $('rows').innerHTML = shown.length ? shown.map((p) => `<tr>
-          <td class="name">${escapeHtml(p.name)}</td>
-          <td><span class="dot${p.online ? ' online' : ''}"></span>${p.online ? 'Online' : 'Offline'}${p.online && p.hidden ? '<span class="tag hidden">appearing offline</span>' : ''}</td>
-          <td class="muted">${escapeHtml(p.server || '—')}</td>
-          <td class="muted">${p.capeStyle ? escapeHtml(p.capeStyle[0].toUpperCase() + p.capeStyle.slice(1)) : '—'}</td>
-          <td class="muted">${p.friends}</td>
-          <td class="muted">${hours(p.playMs)}</td>
-          <td class="muted">${escapeHtml(p.version || '—')}</td>
-          <td class="muted">${p.online ? 'now' : ago(p.lastSeen)}</td>
-          <td class="uuid">${escapeHtml(p.uuid)}</td>
-        </tr>`).join('') : `<tr><td class="empty" colspan="9">${players.length ? 'No players match.' : 'No players yet.'}</td></tr>`;
+    function renderUsage() {
+      if (!usage) return;
+      $('usageLead').textContent = `How many of the ${usage.players} players seen in the last 30 days have each mod on.`;
+      const q = $('usageFilter').value.trim().toLowerCase();
+      const mods = usage.mods.filter((m) => !q || m.name.toLowerCase().includes(q));
+      const top = usage.mods[0] ? usage.mods[0].count : 1;
+      $('usage').innerHTML = mods.length ? mods.map((m) => `<div class="line"><span>${esc(m.name)}</span>
+          <span class="meter">${meter(m.count, top)}<span class="subtle" style="width:3em;text-align:right">${Math.round(m.count / Math.max(1, usage.players) * 100)}%</span></span></div>`).join('')
+        : (usage.mods.length ? 'No mods match.' : 'No usage yet. Clients send it with their first heartbeat after starting.');
+      const vv = Object.entries(usage.versions).sort((a, b) => b[1] - a[1]);
+      $('usageVersions').innerHTML = vv.length ? vv.map(([v, c]) => `<div class="line"><span>${esc(v)}</span>${meter(c, vv[0][1])}</div>`).join('') : 'None yet.';
+    }
+    $('usageFilter').addEventListener('input', renderUsage);
+
+    async function loadBugs() {
+      bugs = (await admin('bugs')).bugs;
+      const recent = bugs.filter((b) => Date.now() - b.at < DAY).length;
+      $('bugCount').hidden = !recent;
+      $('bugCount').textContent = recent;
+      renderBugs();
     }
 
-    async function load() {
-      const token = sessionStorage.getItem(TOKEN_KEY);
-      if (!token) return showLogin();
-      $('refresh').disabled = true;
+    function renderBugs() {
+      const q = $('bugFilter').value.trim().toLowerCase();
+      const list = bugs.filter((r) => !q || [r.name, r.version, r.text].some((v) => (v || '').toLowerCase().includes(q)));
+      $('bugs').innerHTML = list.length ? list.map((r) => `<div class="bug" data-key="${esc(r.key)}">
+          <div><strong>${esc(r.name)}</strong> <span class="muted">· ${esc(r.version || '?')} · ${ago(r.at)}</span></div>
+          <div style="margin-top:0.3rem;white-space:pre-wrap">${esc(r.text)}</div>
+          <div class="row">${r.hasLog ? '<button class="small" data-act="log">Show log</button>' : ''}<button class="small" data-act="reply" data-name="${esc(r.name)}">Message ${esc(r.name)}</button><button class="small" data-act="del">Delete</button></div></div>`).join('')
+        : (bugs.length ? 'No reports match.' : 'No reports.');
+    }
+    $('bugFilter').addEventListener('input', renderBugs);
+
+    $('annPost').addEventListener('click', async () => {
+      $('annError').textContent = '';
       try {
-        players = (await call({ action: 'admin', op: 'players', token })).players;
-        $('updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
-        render();
-      } catch (e) {
-        if (e.status === 401 || e.status === 403) return showLogin('Your session ended. Sign in again.');
-        $('updated').textContent = `Couldn't refresh: ${e.message}`;
-      } finally {
-        $('refresh').disabled = false;
+        await admin('announce', { text: $('annText').value, hours: Number($('annHours').value) });
+        $('annText').value = '';
+        loadTools();
+      } catch (e) { $('annError').textContent = e.message; }
+    });
+    $('annClear').addEventListener('click', async () => {
+      try { await admin('announceClear'); loadTools(); } catch (e) { $('annError').textContent = e.message; }
+    });
+    $('flags').addEventListener('change', async (e) => {
+      const k = e.target.dataset.flag;
+      if (!k) return;
+      $('flagError').textContent = '';
+      try { await admin('flags', { flags: { [k]: e.target.checked } }); }
+      catch (err) { $('flagError').textContent = err.message; e.target.checked = !e.target.checked; }
+    });
+    $('bugs').addEventListener('click', async (e) => {
+      const act = e.target.dataset.act;
+      const box = e.target.closest('.bug');
+      if (!act || !box) return;
+      if (act === 'log') {
+        const r = await admin('bug', { key: box.dataset.key });
+        const pre = document.createElement('pre');
+        pre.textContent = r.log;
+        box.appendChild(pre);
+        e.target.remove();
+      } else if (act === 'reply') {
+        showTab('inbox');
+        $('dmTo').value = e.target.dataset.name;
+        $('dmText').focus();
+      } else if (act === 'del' && confirm('Delete this report?')) {
+        await admin('bugDelete', { key: box.dataset.key });
+        bugs = bugs.filter((b) => b.key !== box.dataset.key);
+        renderBugs();
       }
+    });
+
+    // ------------------------------------------------------------ signing in and out
+
+    function startTimer() {
+      clearInterval(timer);
+      if ($('auto').checked) timer = setInterval(() => { if (!document.hidden) loadAll(); }, 30000);
     }
 
     function showDashboard() {
       $('login').hidden = true;
       $('dashboard').hidden = false;
-      $('signOut').hidden = false;
-      load();
+      $('topRight').hidden = false;
+      const tab = location.hash.slice(1);
+      showTab(document.querySelector(`[data-panel="${tab}"]`) ? tab : 'overview');
+      loadAll();
       loadTools();
-      clearInterval(timer);
-      timer = setInterval(() => { if (!document.hidden) load(); }, 30000);
+      startTimer();
     }
 
     function showLogin(message) {
       clearInterval(timer);
       sessionStorage.removeItem(TOKEN_KEY);
+      closeDrawer();
       $('dashboard').hidden = true;
-      $('signOut').hidden = true;
+      $('topRight').hidden = true;
       $('login').hidden = false;
       $('loginError').textContent = message || '';
       $('passcode').focus();
@@ -315,8 +814,8 @@
       $('loginButton').textContent = 'Checking…';
       $('loginError').textContent = '';
       try {
-        const { token } = await call({ action: 'adminLogin', passcode: $('passcode').value });
-        sessionStorage.setItem(TOKEN_KEY, token);
+        const { token: t } = await call({ action: 'adminLogin', passcode: $('passcode').value });
+        sessionStorage.setItem(TOKEN_KEY, t);
         $('passcode').value = '';
         showDashboard();
       } catch (err) {
@@ -327,47 +826,10 @@
       }
     });
     $('signOut').addEventListener('click', () => showLogin());
-    $('refresh').addEventListener('click', load);
-    $('filter').addEventListener('input', render);
-    $('onlineOnly').addEventListener('change', render);
+    $('refresh').addEventListener('click', () => { loadAll(); loadTools(); });
+    $('auto').addEventListener('change', startTimer);
 
-    $('annPost').addEventListener('click', async () => {
-      $('annError').textContent = '';
-      try {
-        await call({ action: 'admin', op: 'announce', text: $('annText').value, hours: Number($('annHours').value), token: sessionStorage.getItem(TOKEN_KEY) });
-        $('annText').value = '';
-        loadTools();
-      } catch (e) { $('annError').textContent = e.message; }
-    });
-    $('annClear').addEventListener('click', async () => {
-      try { await call({ action: 'admin', op: 'announceClear', token: sessionStorage.getItem(TOKEN_KEY) }); loadTools(); }
-      catch (e) { $('annError').textContent = e.message; }
-    });
-    $('flags').addEventListener('change', async (e) => {
-      const k = e.target.dataset.flag;
-      if (!k) return;
-      $('flagError').textContent = '';
-      try { await call({ action: 'admin', op: 'flags', flags: { [k]: e.target.checked }, token: sessionStorage.getItem(TOKEN_KEY) }); }
-      catch (err) { $('flagError').textContent = err.message; e.target.checked = !e.target.checked; }
-    });
-    $('bugs').addEventListener('click', async (e) => {
-      const act = e.target.dataset.act;
-      const box = e.target.closest('.bug');
-      if (!act || !box) return;
-      const token = sessionStorage.getItem(TOKEN_KEY);
-      if (act === 'log') {
-        const r = await call({ action: 'admin', op: 'bug', key: box.dataset.key, token });
-        const pre = document.createElement('pre');
-        pre.textContent = r.log;
-        box.appendChild(pre);
-        e.target.remove();
-      } else if (act === 'del' && confirm('Delete this report?')) {
-        await call({ action: 'admin', op: 'bugDelete', key: box.dataset.key, token });
-        box.remove();
-      }
-    });
-
-    if (sessionStorage.getItem(TOKEN_KEY)) showDashboard();
+    if (token()) showDashboard();
   </script>
 </body>
 </html>

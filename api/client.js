@@ -70,6 +70,8 @@ const MAX_BUG = 4000;
 const MAX_BUG_LOG = 64 * 1024;
 const BUGS_PER_HOUR = 3;
 const MAX_ANNOUNCEMENT = 200;
+const MAX_SUPPORT_LOG = 300;
+const MAX_BAN_REASON = 120;
 const FLAG_RE = /^[a-zA-Z][a-zA-Z0-9_]{0,31}$/;
 
 const UUID_RE = /^[0-9a-f]{32}$/;
@@ -125,8 +127,12 @@ function createHandler(deps = {}) {
     return payload;
   }
 
+  function adminIds() {
+    return String(env.DRAGOMIR_ADMINS || '').split(',').map((s) => s.trim().toLowerCase().replace(/-/g, '')).filter((s) => UUID_RE.test(s));
+  }
+
   function isAdmin(uuid) {
-    return String(env.DRAGOMIR_ADMINS || '').split(',').map((s) => s.trim().toLowerCase().replace(/-/g, '')).includes(uuid);
+    return adminIds().includes(uuid);
   }
 
   // ------------------------------------------------------------ Firebase (REST, signed in as the service account)
@@ -188,7 +194,8 @@ function createHandler(deps = {}) {
     const uuid = normUuid(profile.id);
     const realName = checkName(profile.name);
     const lower = realName.toLowerCase();
-    const firstSeen = await get(`users/${uuid}/firstSeen`);
+    const [firstSeen, banned] = await Promise.all([get(`users/${uuid}/firstSeen`), get(`users/${uuid}/banned`)]);
+    if (banned) throw new HttpError(403, "This account can't use Dragomir's online features");
     await update({
       ...(firstSeen ? {} : { [`users/${uuid}/firstSeen`]: now() }),
       [`users/${uuid}/name`]: realName,
@@ -204,6 +211,11 @@ function createHandler(deps = {}) {
     const hidden = !!body.hidden;
     const [user, prev] = await Promise.all([get(`users/${me.u}`), get(`presence/${me.u}`)]);
     const u = user || {};
+    // A ban (from the admin page) ends the session at the next heartbeat; signing in again is refused.
+    if (u.banned) {
+      await update({ [`presence/${me.u}`]: null });
+      throw new HttpError(401, "This account can't use Dragomir's online features");
+    }
     // 1.8+ clients send capeStyle; older ones only send cape: true/false, which means the classic cape.
     // Locked cosmetics someone hasn't unlocked are quietly dropped rather than refusing the heartbeat.
     let style = body.capeStyle === undefined ? (body.cape ? 'classic' : null) : capeStyle(body.capeStyle);
@@ -339,17 +351,31 @@ function createHandler(deps = {}) {
     // To one friend, or (party: true) to everyone else in your party.
     let recipients;
     let partyId = null;
+    let support = false, adminReply = false;
     if (body.party) {
       partyId = await get(`users/${me.u}/party`);
       const p = partyId ? await get(`parties/${partyId}`) : null;
       if (!p || !p.members || !p.members[me.u]) throw new HttpError(400, "You're not in a party");
       recipients = Object.keys(p.members).filter((id) => id !== me.u);
       if (!recipients.length) throw new HttpError(400, "There's nobody else in your party yet");
+    } else if (body.support) {
+      // /dm: straight to the Dragomir admins, friends or not. A copy goes to the admin page's inbox.
+      recipients = adminIds().filter((id) => id !== me.u);
+      if (!recipients.length) throw new HttpError(503, "Nobody's reading messages right now");
+      support = true;
     } else {
-      const to = normUuid(body.to);
-      if (!(await areFriends(me.u, to))) throw new HttpError(403, 'You can only message friends');
-      if (await isBlockedBy(to, me.u)) throw new HttpError(403, "You can't message that player");
+      // By uuid (friends list) or by name (/dms). Friends only, except that anyone can message an admin and an admin
+      // can message anyone (blocks don't stop admins).
+      const to = body.toName !== undefined ? await uuidForName(body.toName) : normUuid(body.to);
+      if (to === me.u) throw new HttpError(400, "That's you");
+      const staff = isAdmin(me.u);
+      const friends = await areFriends(me.u, to);
+      if (!staff && !isAdmin(to) && !friends) throw new HttpError(403, 'You can only message friends');
+      if (!staff && await isBlockedBy(to, me.u)) throw new HttpError(403, "You can't message that player");
       recipients = [to];
+      // Outside friendships, these go to the admin page's inbox too.
+      support = !staff && !friends;
+      adminReply = staff && !friends;
     }
 
     // At most MESSAGES_PER_MINUTE per sender, so a stuck key can't flood someone's inbox.
@@ -360,16 +386,28 @@ function createHandler(deps = {}) {
 
     const inboxes = await Promise.all(recipients.map((to) => get(`messages/${to}`)));
     const changes = { [`users/${me.u}/msgWindow`]: { start: fresh ? now() : window.start, count } };
+    const flags = { ...(isAdmin(me.u) ? { admin: true } : {}), ...(support ? { support: true } : {}) };
     recipients.forEach((to, i) => {
       changes[`messages/${to}/${messageKey()}`] = {
-        from: me.u, name: me.n, text, at: now(), ...(shared ? { waypoint: shared } : {}), ...(partyId ? { party: partyId } : {})
+        from: me.u, name: me.n, text, at: now(), ...(shared ? { waypoint: shared } : {}), ...(partyId ? { party: partyId } : {}), ...flags
       };
       // Keep the inbox bounded if someone stays offline for a long time: drop the oldest.
       const keys = Object.keys(inboxes[i] || {}).sort();
       for (const key of keys.slice(0, Math.max(0, keys.length - MAX_INBOX + 1))) changes[`messages/${to}/${key}`] = null;
     });
+    if (support) Object.assign(changes, await supportLog({ from: me.u, name: me.n, text }));
+    else if (adminReply) Object.assign(changes, await supportLog({ from: me.u, name: me.n, text, to: recipients[0], reply: true }));
     await update(changes);
     return { sent: true };
+  }
+
+  // Messages to and from the admins, kept for the admin page's inbox (the newest MAX_SUPPORT_LOG).
+  async function supportLog(entry) {
+    const log = (await get('support')) || {};
+    const changes = { [`support/${messageKey()}`]: { ...entry, at: now() } };
+    const keys = Object.keys(log).sort();
+    for (const key of keys.slice(0, Math.max(0, keys.length - MAX_SUPPORT_LOG + 1))) changes[`support/${key}`] = null;
+    return changes;
   }
 
   // Messages waiting for this player, oldest first. They're removed once handed over.
@@ -381,7 +419,8 @@ function createHandler(deps = {}) {
     for (const key of keys) changes[`messages/${uuid}/${key}`] = null;
     await update(changes);
     return keys.map((key) => inbox[key]).filter(Boolean).map((m) => ({ from: m.from, name: m.name, text: m.text, at: m.at, ...(m.waypoint ? { waypoint: m.waypoint } : {}),
-      ...(m.party ? { party: m.party } : {}), ...(m.gift ? { gift: m.gift } : {}), ...(m.shot ? { shot: m.shot } : {}) }));
+      ...(m.party ? { party: m.party } : {}), ...(m.gift ? { gift: m.gift } : {}), ...(m.shot ? { shot: m.shot } : {}),
+      ...(m.admin ? { admin: true } : {}), ...(m.support ? { support: true } : {}) }));
   }
 
   async function friendState(uuid) {
@@ -689,7 +728,7 @@ function createHandler(deps = {}) {
     const users = {};
     ids.forEach((id, i) => {
       const r = records[i];
-      if (r) {
+      if (r && !r.banned) {
         users[id] = { badge: r.badge !== false, cape: !!r.cape, capeStyle: r.cape ? (r.capeStyle || 'classic') : null };
         if (r.extras) {
           const e = r.extras;
@@ -785,7 +824,8 @@ function createHandler(deps = {}) {
           uuid: id, name: u.name || '?', lastSeen: u.lastSeen || 0, online, server: online ? p.server : '',
           hidden: !!(p && p.hidden), capeStyle: u.cape ? (u.capeStyle || 'classic') : null,
           friends: Object.values(links).filter((v) => v === 'friends').length,
-          playMs: u.playMs || 0, version: (p && p.version) || ''
+          playMs: u.playMs || 0, version: (p && p.version) || '', firstSeen: u.firstSeen || 0, banned: !!u.banned,
+          status: online && p.status ? p.status : '', dnd: !!(online && p.dnd)
         };
       }).sort((x, y) => (y.online - x.online) || (y.lastSeen - x.lastSeen));
       return { players };
@@ -864,6 +904,88 @@ function createHandler(deps = {}) {
       const b = await get(`bugs/${key}`);
       if (!b) throw new HttpError(404, 'No such report');
       return { key, ...b };
+    }
+    if (op === 'player') {
+      // Everything about one player, for the admin page's player panel.
+      const uuid = body.uuid ? normUuid(body.uuid) : await uuidForName(body.name);
+      const [u, p, links, blocks, usage, shareOut] = await Promise.all([get(`users/${uuid}`), get(`presence/${uuid}`), get(`friends/${uuid}`),
+        get(`blocks/${uuid}`), get(`usage/${uuid}`), get(`locshare/${uuid}`)]);
+      if (!u) throw new HttpError(404, 'No such player');
+      const ids = Object.keys(links || {});
+      const names = await Promise.all(ids.map((id) => get(`users/${id}/name`)));
+      const online = !!p && now() - p.at < ONLINE_MS;
+      return {
+        uuid, name: u.name, firstSeen: u.firstSeen || 0, lastSeen: u.lastSeen || 0, playMs: u.playMs || 0, bio: u.bio || '',
+        online, server: online ? p.server : '', hidden: !!(p && p.hidden), status: (p && p.status) || '', dnd: !!(p && p.dnd),
+        version: (p && p.version) || '', capeStyle: u.cape ? u.capeStyle || 'classic' : null, extras: u.extras || null,
+        badge: u.badge !== false, party: u.party || null, inviteCode: u.inviteCode || null,
+        unlocked: unlocked(u), gifts: Object.keys(u.gifts || {}), banned: u.banned || null, admin: isAdmin(uuid),
+        links: ids.map((id, i) => ({ uuid: id, name: names[i] || '?', state: links[id] })).sort((a, b) => a.name.localeCompare(b.name)),
+        blocked: Object.keys(blocks || {}).length, sharingWith: Object.keys(shareOut || {}).length,
+        mods: usage && usage.mods ? usage.mods : [], hasSetup: !!u.setup
+      };
+    }
+    if (op === 'message') {
+      // A message from the admins to one player, by uuid or name. From the website it's sent as the first admin.
+      const text = cleanText(body.text).slice(0, MAX_MESSAGE);
+      if (!text) throw new HttpError(400, 'Write a message');
+      const to = body.uuid ? normUuid(body.uuid) : await uuidForName(body.name);
+      const from = me.u || adminIds()[0];
+      if (!from) throw new HttpError(503, 'Add your uuid to DRAGOMIR_ADMINS first');
+      if (to === from) throw new HttpError(400, "That's you");
+      const fromName = me.n || (await get(`users/${from}/name`)) || 'Dragomir';
+      await update({
+        [`messages/${to}/${messageKey()}`]: { from, name: fromName, text, at: now(), admin: true },
+        ...(await supportLog({ from, name: fromName, text, to, reply: true }))
+      });
+      return { sent: true };
+    }
+    if (op === 'support') {
+      const log = (await get('support')) || {};
+      const ids = [...new Set(Object.values(log).map((m) => m.to).filter(Boolean))];
+      const names = await Promise.all(ids.map((id) => get(`users/${id}/name`)));
+      const toName = Object.fromEntries(ids.map((id, i) => [id, names[i] || '?']));
+      const messages = Object.entries(log).sort((a, b) => (a[0] < b[0] ? 1 : -1))
+        .map(([key, m]) => ({ key, ...m, ...(m.to ? { toName: toName[m.to] } : {}) }));
+      return { messages };
+    }
+    if (op === 'supportDelete') {
+      const key = String(body.key || '');
+      if (!/^[0-9a-f-]{20,40}$/.test(key)) throw new HttpError(400, 'Bad message');
+      await update({ [`support/${key}`]: null });
+      return { deleted: true };
+    }
+    if (op === 'ban' || op === 'unban') {
+      // Banned players can't sign in, their session ends at the next heartbeat, and nobody sees their badge or cape.
+      const uuid = normUuid(body.uuid);
+      if (op === 'ban' && isAdmin(uuid)) throw new HttpError(400, "Admins can't be banned");
+      if (!(await get(`users/${uuid}/name`))) throw new HttpError(404, 'No such player');
+      const ban = op === 'ban' ? { at: now(), reason: cleanText(body.reason).slice(0, MAX_BAN_REASON) } : null;
+      await update({ [`users/${uuid}/banned`]: ban, ...(ban ? { [`presence/${uuid}`]: null } : {}) });
+      return { banned: ban };
+    }
+    if (op === 'grant' || op === 'revoke') {
+      // Unlock (or take back) a locked cosmetic, like a gift from the admins.
+      const uuid = normUuid(body.uuid);
+      const item = String(body.item || '');
+      if (!UNLOCKS[item]) throw new HttpError(400, "That isn't a locked cosmetic");
+      if (!(await get(`users/${uuid}/name`))) throw new HttpError(404, 'No such player');
+      const changes = { [`users/${uuid}/gifts/${item}`]: op === 'grant' ? { from: 'Dragomir', at: now() } : null };
+      const from = adminIds()[0];
+      if (op === 'grant' && from && from !== uuid) {
+        changes[`messages/${uuid}/${messageKey()}`] = { from, name: 'Dragomir', text: `Gave you a gift: ${item}`, at: now(), gift: item, admin: true };
+      }
+      await update(changes);
+      return { unlocked: unlocked((await get(`users/${uuid}`)) || {}) };
+    }
+    if (op === 'resetProfile') {
+      // Clears what a player wrote for others to read (bio, status) and their shared setup code.
+      const uuid = normUuid(body.uuid);
+      await update({ [`users/${uuid}/bio`]: null, [`users/${uuid}/setup`]: null, [`presence/${uuid}/status`]: null });
+      return { reset: true };
+    }
+    if (op === 'unlocks') {
+      return { items: Object.keys(UNLOCKS) };
     }
     if (op === 'bugDelete') {
       const key = String(body.key || '');
