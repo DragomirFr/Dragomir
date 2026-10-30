@@ -116,17 +116,12 @@ function renderTable() {
 }
 
 function buildMatches() {
-  ROUNDS.forEach((round, ri) => {
-    const label = document.createElement("div");
-    label.className = "round"; label.textContent = `Round ${ri + 1}`;
-    $("rounds").append(label);
-    for (const [id, a, b] of round) {
-      const row = document.createElement("div");
-      row.className = "match";
-      row.append(pickButton(id, "a", TEAMS[a]), pickButton(id, "b", TEAMS[b]));
-      $("rounds").append(row);
-    }
-  });
+  for (const { id, a, b } of MATCHES) {
+    const row = document.createElement("div");
+    row.className = "match";
+    row.append(pickButton(id, "a", TEAMS[a]), pickButton(id, "b", TEAMS[b]));
+    $("rounds").append(row);
+  }
 }
 
 function pickButton(id, side, team) {
