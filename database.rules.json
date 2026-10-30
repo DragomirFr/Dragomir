@@ -7,6 +7,15 @@
     "adminAuth": {
       ".read": true,
       ".write": "auth != null"
+    },
+    "padel": {
+      ".read": true,
+      "matches": {
+        "$match": {
+          ".write": "$match.matches(/^m[1-6]$/)",
+          ".validate": "newData.isString() && (newData.val() === 'a' || newData.val() === 'b')"
+        }
+      }
     }
   }
 }
