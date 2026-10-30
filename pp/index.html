@@ -1,368 +1,206 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Padel Tourney</title>
-
-    <link rel="stylesheet" href="style.css?v=6">
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-
-<body>
-
-<header class="topbar">
-
-    <div class="top-actions">
-        <button id="historyBtn" class="secondary">
-            History
-        </button>
-
-        <button id="newTournamentBtn" class="secondary">
-            New Tournament
-        </button>
-
-        <button id="resetBtn" class="danger">
-            Reset
-        </button>
-    </div>
-
-</header>
-
-
-<main>
-
-    <!-- SETUP -->
-
-    <section id="setupScreen" class="screen">
-
-        <div class="setup-card">
-
-            <div class="setup-heading">
-                <span class="eyebrow">ROUND-ROBIN TOURNAMENT</span>
-
-                <h2>Set up matchday.</h2>
-
-                <p>
-                    Add four teams of two players and start your tournament.
-                </p>
-            </div>
-
-
-            <div class="input-group">
-
-                <label>
-                    Tournament name
-                </label>
-
-                <input
-                    id="tournamentName"
-                    type="text"
-                    value="Padel 2v2 Tournament"
-                    placeholder="Tournament name"
-                >
-
-            </div>
-
-
-            <div class="players-grid" id="playersSetup">
-
-                <!-- JS creates teams -->
-
-            </div>
-
-
-            <button
-                id="startTournamentBtn"
-                class="primary start-btn"
-            >
-                Start Tournament
-            </button>
-
-        </div>
-
-    </section>
-
-
-    <!-- TOURNAMENT -->
-
-    <section id="tournamentScreen" class="screen hidden">
-
-        <div class="tournament-header">
-
-            <div>
-
-                <span class="eyebrow">
-                    TOURNAMENT
-                </span>
-
-                <h2 id="tournamentTitle">
-                    Tournament
-                </h2>
-
-            </div>
-
-
-            <div class="tournament-status">
-
-                <span id="statusDot"></span>
-
-                <span id="tournamentStatus">
-                    In progress
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- STATS -->
-
-        <section class="stats">
-
-            <div class="stat-card">
-                <span>Teams</span>
-                <strong id="playerCount">4</strong>
-            </div>
-
-            <div class="stat-card">
-                <span>Matches</span>
-                <strong id="matchCount">0</strong>
-            </div>
-
-            <div class="stat-card">
-                <span>Completed</span>
-                <strong id="completedCount">0</strong>
-            </div>
-
-            <div class="stat-card">
-                <span>Remaining</span>
-                <strong id="remainingCount">0</strong>
-            </div>
-
-        </section>
-
-
-        <!-- BRACKET -->
-
-        <section class="bracket-section">
-
-            <div class="section-header">
-
-                <div>
-                    <h3>Matches</h3>
-
-                    <p>
-                       
-                    </p>
-                </div>
-
-            </div>
-
-
-            <div
-                class="bracket"
-                id="bracket"
-            ></div>
-
-        </section>
-
-
-        <!-- LEADERBOARD -->
-
-        <section class="leaderboard-section">
-
-            <div class="section-header">
-
-                <div>
-                    <h3>Leaderboard</h3>
-
-                    <p>
-                        Tournament statistics.
-                    </p>
-                </div>
-
-            </div>
-
-
-            <div class="table-wrapper">
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-                            <th>#</th>
-                            <th>Team</th>
-                            <th>W</th>
-                            <th>Pts</th>
-                            <th>L</th>
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="leaderboard"></tbody>
-
-                </table>
-
-            </div>
-
-        </section>
-
-
-        <!-- WINNER -->
-
-        <section
-            id="winnerSection"
-            class="winner-section hidden"
-        >
-
-            <span class="eyebrow">
-                TOURNAMENT COMPLETE
-            </span>
-
-            <h2 id="winnerName">
-                Winner
-            </h2>
-
-            <p>
-                Congratulations!
-            </p>
-
-        </section>
-
-    </section>
-
-</main>
-
-
-<!-- MATCH MODAL -->
-
-<div
-    id="matchModal"
-    class="modal hidden"
->
-
-    <div class="modal-content">
-
-        <button
-            id="closeModal"
-            class="modal-close"
-        >
-            ×
-        </button>
-
-        <span class="eyebrow">
-            MATCH RESULT
-        </span>
-
-        <h2 id="modalTitle">
-            Match
-        </h2>
-
-
-        <div class="score-form">
-
-            <div class="score-player">
-
-                <div
-                    class="player-avatar"
-                    id="modalAvatar1"
-                >
-                    A
-                </div>
-
-                <h3 id="modalPlayer1">
-                    Team 1
-                </h3>
-
-                <input
-                    id="score1"
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                >
-
-            </div>
-
-
-            <div class="vs">
-                VS
-            </div>
-
-
-            <div class="score-player">
-
-                <div
-                    class="player-avatar"
-                    id="modalAvatar2"
-                >
-                    B
-                </div>
-
-                <h3 id="modalPlayer2">
-                    Team 2
-                </h3>
-
-                <input
-                    id="score2"
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                >
-
-            </div>
-
-        </div>
-
-
-        <button
-            id="saveMatch"
-            class="primary"
-        >
-            Save Result
-        </button>
-
-    </div>
-
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Friends Padel Cup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: plain single column, table then matches. Flat dark, no effects. */
+:root {
+  --bg: #0e0f11;
+  --line: #26282d;
+  --fg: #ececec;
+  --muted: #7d8088;
+  --btn: #1a1c20;
+  --win: #e9e9e9;
+  --win-fg: #0e0f11;
+  --red: #ff6b6b;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.45; }
+.wrap {
+  max-width: 560px; margin: 0 auto;
+  padding-block: 32px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1 { font-size: 24px; font-weight: 700; margin: 0 0 28px; }
+h2 { font-size: 15px; font-weight: 600; color: var(--muted); margin: 32px 0 8px; }
+
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+th { font-size: 13px; font-weight: 500; color: var(--muted); }
+th:nth-child(1), td:nth-child(1) { text-align: left; width: 24px; color: var(--muted); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+td.pts { font-weight: 700; }
+
+.round { font-size: 13px; color: var(--muted); margin: 18px 0 6px; }
+.match { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+.pick {
+  font: inherit; font-size: 15px; color: var(--fg); text-align: left;
+  background: var(--btn); border: 1px solid var(--line); border-radius: 6px;
+  padding: 11px 12px; cursor: pointer;
+}
+.pick:hover:not(:disabled) { border-color: var(--muted); }
+.pick:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+.pick.won { background: var(--win); color: var(--win-fg); border-color: var(--win); font-weight: 600; }
+.pick.lost { color: var(--muted); }
+.pick:disabled { cursor: default; }
+
+.champ { margin: 0 0 8px; font-weight: 600; }
+.status { font-size: 13px; color: var(--muted); margin-top: 20px; }
+.status.err { color: var(--red); }
+</style>
+
+<div class="wrap">
+  <h1>Padel Cup</h1>
+  <p class="champ" id="winner" hidden></p>
+
+  <table>
+    <thead><tr><th></th><th>Team</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead>
+    <tbody id="standings"></tbody>
+  </table>
+
+  <h2>Matches · tap the winner</h2>
+  <div id="rounds"></div>
+  <p class="status" id="status"></p>
 </div>
 
+<script>
+const TEAMS = ["Dragomir + Leo", "Aurimas + Oskar", "Alex + Norris", "Eesah + Rayan"];
+const ROUNDS = [
+  [["m1", 0, 3], ["m2", 1, 2]],
+  [["m3", 0, 2], ["m4", 3, 1]],
+  [["m5", 0, 1], ["m6", 2, 3]],
+];
+const MATCHES = ROUNDS.flat().map(([id, a, b]) => ({ id, a, b }));
 
-<div id="toast"></div>
+let winners = {};   // matchId -> "a" | "b"
+let db = null;
+let canWrite = true;
+const $ = id => document.getElementById(id);
 
-<div id="historyOverlay" class="history-overlay hidden"></div>
+function standings() {
+  const rows = TEAMS.map((name, i) => ({ i, name, p: 0, w: 0, l: 0, pts: 0 }));
+  for (const m of MATCHES) {
+    const w = winners[m.id];
+    if (!w) continue;
+    const W = rows[w === "a" ? m.a : m.b], L = rows[w === "a" ? m.b : m.a];
+    W.p++; L.p++; W.w++; W.pts += 3; L.l++;
+  }
+  const h2h = (x, y) => {
+    const m = MATCHES.find(m => (m.a === x.i && m.b === y.i) || (m.a === y.i && m.b === x.i));
+    const w = winners[m.id];
+    if (!w) return 0;
+    return (w === "a" ? m.a : m.b) === x.i ? -1 : 1;
+  };
+  return rows.sort((x, y) => (y.pts - x.pts) || h2h(x, y) || (x.i - y.i));
+}
 
-<aside id="historyPanel" class="history-panel hidden">
+function renderTable() {
+  const rows = standings();
+  const body = $("standings");
+  body.innerHTML = "";
+  rows.forEach((r, k) => {
+    const tr = document.createElement("tr");
+    [[k + 1], [r.name], [r.p], [r.w], [r.l], [r.pts, "pts"]].forEach(([v, cls]) => {
+      const td = document.createElement("td");
+      if (cls) td.className = cls;
+      td.textContent = v;
+      tr.append(td);
+    });
+    body.append(tr);
+  });
+  const done = MATCHES.every(m => winners[m.id]);
+  $("winner").hidden = !done;
+  if (done) $("winner").textContent = `${rows[0].name} won.`;
+}
 
-    <div class="history-panel-header">
+function buildMatches() {
+  ROUNDS.forEach((round, ri) => {
+    const label = document.createElement("div");
+    label.className = "round"; label.textContent = `Round ${ri + 1}`;
+    $("rounds").append(label);
+    for (const [id, a, b] of round) {
+      const row = document.createElement("div");
+      row.className = "match";
+      row.append(pickButton(id, "a", TEAMS[a]), pickButton(id, "b", TEAMS[b]));
+      $("rounds").append(row);
+    }
+  });
+}
 
-        <div>
-            <span class="eyebrow">PAST TOURNAMENTS</span>
-            <h3>History</h3>
-        </div>
+function pickButton(id, side, team) {
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "pick"; btn.id = `pick-${id}-${side}`;
+  btn.textContent = team;
+  btn.addEventListener("click", () => pick(id, side));
+  return btn;
+}
 
-        <button
-            id="closeHistory"
-            class="modal-close"
-        >
-            ×
-        </button>
+function renderMatches() {
+  for (const m of MATCHES) {
+    const w = winners[m.id];
+    for (const side of ["a", "b"]) {
+      const btn = $(`pick-${m.id}-${side}`);
+      btn.classList.toggle("won", w === side);
+      btn.classList.toggle("lost", !!w && w !== side);
+      btn.setAttribute("aria-pressed", String(w === side));
+      btn.disabled = !canWrite;
+    }
+  }
+}
 
-    </div>
+function render() { renderTable(); renderMatches(); }
 
-    <div id="historyList" class="history-list"></div>
+let queue = Promise.resolve();
+function pick(id, side) {
+  // Tapping the current winner clears the result.
+  const next = winners[id] === side ? null : side;
+  if (next) winners[id] = next; else delete winners[id];
+  render();
+  if (!db) {
+    try { localStorage.setItem("padel-cup-winners", JSON.stringify(winners)); } catch (e) {}
+    return;
+  }
+  const ref = db.doc("matches/" + id);
+  queue = queue.then(() => (next ? ref.set({ w: next }) : ref.delete())).catch(e => {
+    if (e && e.code === "invalid_argument") {
+      canWrite = false; render();
+      setStatus("You can't enter results. Ask Dragomir to make you a Contributor.", true);
+    } else {
+      setStatus("Didn't save. Check your connection and tap again.", true);
+    }
+  });
+}
 
-</aside>
+function setStatus(text, isError) {
+  $("status").textContent = text;
+  $("status").className = isError ? "status err" : "status";
+}
 
+buildMatches();
+render();
 
-<script src="app.js?v=6"></script>
+(async () => {
+  const api = window.claude && window.claude.use ? window.claude : null;
+  db = api ? await api.use("db") : null;
+  if (!db) {
+    try { winners = JSON.parse(localStorage.getItem("padel-cup-winners") || "{}") || {}; } catch (e) {}
+    render();
+    return;
+  }
+  const user = await api.use("user");
+  if (user && user.can && (await user.can("data.write")) === false) canWrite = false;
+  db.collection("matches").onSnapshot(snap => {
+    const next = {};
+    for (const d of snap.docs) {
+      const v = d.data();
+      if (v && (v.w === "a" || v.w === "b")) next[d.id] = v.w;
+    }
+    winners = next;
+    render();
+  }, () => setStatus("Lost connection. Reload the page.", true));
+})();
+</script>
 
-</body>
-
-</html>
+</body></html>
