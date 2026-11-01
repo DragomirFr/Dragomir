@@ -752,6 +752,12 @@ function createHandler(deps = {}) {
 
   async function friend(me, body) {
     const op = String(body.op || '');
+    if (op === 'list') {
+      // For the launcher: everything the heartbeat tells about friends, without going online or counting play time.
+      const [state, notice, u] = await Promise.all([friendState(me.u), notices(), get(`users/${me.u}`)]);
+      const user = u || {};
+      return { ...state, ...notice, me: { playMs: user.playMs || 0, unlocked: unlocked(user), admin: isAdmin(me.u) } };
+    }
     if (op === 'add') {
       const target = await uuidForName(body.name);
       if (target === me.u) throw new HttpError(400, "You can't add yourself");
