@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Padel Cup</title>
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/x-icon" href="https://dragomir.xyz/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -221,6 +221,7 @@
     .field { font: inherit; font-size: 0.9rem; color: var(--text-main); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 0.75rem; min-width: 0; width: 100%; transition: all 0.25s var(--ease); }
     .field::placeholder { color: var(--text-subtle); }
     .field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(120, 119, 198, 0.3); }
+    .editor-title-label { display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-subtle); padding: 0 0 0.4rem; }
     .editor-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; flex-wrap: wrap; }
     .btn { font: inherit; font-size: 0.85rem; font-weight: 700; border-radius: 9999px; padding: 0.6rem 1.2rem; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-muted); transition: all 0.25s var(--ease); }
     .btn:hover { border-color: var(--border-hover); color: #ffffff; }
@@ -272,7 +273,7 @@
   <canvas id="fx"></canvas>
   <main>
     <header>
-      <h1>Padel Cup</h1>
+      <h1 id="title">Padel Cup</h1>
       <div class="pills">
         <span class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Connecting</span></span>
         <span class="pill" id="progressPill">0 of 6 played</span>
@@ -289,7 +290,9 @@
         <h2>Teams</h2>
         <span class="hint" id="editorHint">Name your team and list its players</span>
       </div>
-      <div class="editor-labels"><span>#</span><span>Team name</span><span>Players</span></div>
+      <label class="editor-title-label" for="edit-title">Tournament title</label>
+      <input class="field" id="edit-title" maxlength="32" placeholder="Padel Cup" autocomplete="off">
+      <div class="editor-labels" style="margin-top:1rem"><span>#</span><span>Team name</span><span>Players</span></div>
       <div id="editorRows"></div>
       <div class="editor-actions">
         <button type="button" class="btn" id="editorCancel">Cancel</button>
@@ -325,7 +328,7 @@
       <ul class="feed" id="feed"></ul>
     </section>
 
-    <footer><a href="/">dragomir.xyz</a></footer>
+    <footer><a href="https://dragomir.xyz">dragomir.xyz</a></footer>
   </main>
 
   <div class="ov" id="scoreOv" hidden><div class="modal" id="scoreModal" role="dialog" aria-modal="true" aria-labelledby="scoreTitle"></div></div>
@@ -348,6 +351,8 @@
       { id: "m5", a: 0, b: 1 }, { id: "m6", a: 2, b: 3 },
     ];
 
+    const DEFAULT_TITLE = "Padel Cup";
+    let TITLE = DEFAULT_TITLE;   // editable, stored at padel/title
     let TEAMS = DEFAULT_TEAMS.map(t => ({ ...t }));
     let winners = {};   // matchId -> "a" | "b"      (quick results)
     let scores = {};    // matchId -> {sets, status, started}   (set-by-set scoring)
@@ -604,6 +609,7 @@
     }
 
     function render() {
+      $("title").textContent = TITLE; document.title = TITLE;
       renderHero(); renderStandings(); renderMatches(); renderMatrix(); renderFeed();
       if (modalId) renderModal();
       const played = MATCHES.filter(m => result(m).status === "final").length;
@@ -659,7 +665,8 @@
         const pl = document.createElement("input"); pl.className = "field"; pl.id = `edit-players-${i}`; pl.placeholder = "Player + Player"; pl.maxLength = 40; pl.value = t.players; pl.setAttribute("aria-label", `Team ${i + 1} players`);
         row.append(n, name, pl); rows.append(row);
       });
-      $("editorHint").textContent = "Name your team and list its players"; $("editorHint").className = "hint";
+      $("edit-title").value = TITLE;
+      $("editorHint").textContent = "Set the title, name your teams and list the players"; $("editorHint").className = "hint";
       $("teamEditor").hidden = false; $("editTeamsBtn").setAttribute("aria-expanded", "true");
       $("edit-name-0").focus();
     }
@@ -669,11 +676,12 @@
       for (let i = 0; i < TEAMS.length; i++) {
         const name = $(`edit-name-${i}`).value.trim(), players = $(`edit-players-${i}`).value.trim();
         if (!players) { $("editorHint").textContent = `Team ${i + 1} needs its players listed`; $("editorHint").className = "hint error-text"; $(`edit-players-${i}`).focus(); return; }
-        upd["t" + i] = { name, players };
+        upd["teams/t" + i] = { name, players };
       }
+      upd.title = $("edit-title").value.trim() || DEFAULT_TITLE;
       if (!root) { $("editorHint").textContent = "Offline. Can't save right now."; $("editorHint").className = "hint error-text"; return; }
       $("editorSave").disabled = true;
-      try { await root.child("teams").update(upd); closeEditor(); }
+      try { await root.update(upd); closeEditor(); }
       catch (e) { $("editorHint").textContent = "Didn't save. Check your connection and try again."; $("editorHint").className = "hint error-text"; }
       finally { $("editorSave").disabled = false; }
     }
@@ -724,13 +732,14 @@
       const db = firebase.database();
       root = db.ref("padel");
       let ready = 0;
-      const first = () => { if (++ready === 4) { loaded = true; render(); } };
+      const first = () => { if (++ready === 5) { loaded = true; render(); } };
       const bind = (ref, fn) => { let once = false; ref.on("value", snap => { fn(snap.val()); render(); if (!once) { once = true; first(); } }, () => setStatus("offline", "Can't load results")); };
       bind(root.child("matches"), d => { winners = {}; for (const m of MATCHES) if (d && (d[m.id] === "a" || d[m.id] === "b")) winners[m.id] = d[m.id]; });
       bind(root.child("scores"), d => {
         scores = {};
         for (const m of MATCHES) { const s = d && d[m.id]; if (s && (s.status === "live" || s.status === "final")) scores[m.id] = s; }
       });
+      bind(root.child("title"), d => { TITLE = typeof d === "string" && d.trim() ? d.trim().slice(0, 32) : DEFAULT_TITLE; });
       bind(root.child("teams"), d => {
         d = d || {};
         TEAMS = DEFAULT_TEAMS.map((def, i) => {

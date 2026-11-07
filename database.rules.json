@@ -16,6 +16,10 @@
           ".validate": "newData.hasChildren(['name', 'players']) && newData.child('name').isString() && newData.child('name').val().length <= 24 && newData.child('players').isString() && newData.child('players').val().length > 0 && newData.child('players').val().length <= 40"
         }
       },
+      "title": {
+        ".write": true,
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32"
+      },
       "scores": {
         "$match": {
           ".write": "$match.matches(/^m[1-6]$/)",
