@@ -5,10 +5,6 @@
       "destination": "/timetable.html"
     },
     {
-      "source": "/pp/",
-      "destination": "/pp/index.html"
-    },
-    {
       "source": "/client",
       "destination": "/client/index.html"
     },
@@ -39,6 +35,18 @@
     {
       "source": "/client-admin",
       "destination": "/client/admin.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/pp",
+      "destination": "https://padel.dragomir.xyz",
+      "permanent": false
+    },
+    {
+      "source": "/pp/:path*",
+      "destination": "https://padel.dragomir.xyz",
+      "permanent": false
     }
   ]
 }
