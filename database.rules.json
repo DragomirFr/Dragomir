@@ -10,6 +10,12 @@
     },
     "padel": {
       ".read": true,
+      "teams": {
+        "$team": {
+          ".write": "$team.matches(/^t[0-3]$/)",
+          ".validate": "newData.hasChildren(['name', 'players']) && newData.child('name').isString() && newData.child('name').val().length <= 24 && newData.child('players').isString() && newData.child('players').val().length > 0 && newData.child('players').val().length <= 40"
+        }
+      },
       "matches": {
         "$match": {
           ".write": "$match.matches(/^m[1-6]$/)",

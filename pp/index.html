@@ -284,6 +284,79 @@
 
     .error-text { color: var(--error); }
 
+    /* Team names + editing */
+    button.pill { font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.25s var(--ease); }
+    button.pill:hover { border-color: var(--border-hover); color: #ffffff; transform: translateY(-2px); }
+    button.pill:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(120, 119, 198, 0.3); }
+
+    .team-sub, .pick-sub {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text-subtle);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pick-name { display: block; }
+    .pick.won .pick-sub { color: rgba(0, 0, 0, 0.55); }
+
+    .editor-row {
+      display: grid;
+      grid-template-columns: 1.75rem 1fr 1.4fr;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 0.35rem 0;
+    }
+    .editor-row .rank { text-align: left; }
+    .field {
+      font: inherit;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.7rem 0.75rem;
+      min-width: 0;
+      width: 100%;
+      transition: all 0.25s var(--ease);
+    }
+    .field::placeholder { color: var(--text-subtle); }
+    .field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(120, 119, 198, 0.3); }
+    .editor-labels {
+      display: grid;
+      grid-template-columns: 1.75rem 1fr 1.4fr;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-subtle);
+      padding: 0 0 0.25rem;
+    }
+    .editor-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; flex-wrap: wrap; }
+    .btn {
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 9999px;
+      padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.25s var(--ease);
+    }
+    .btn:hover { border-color: var(--border-hover); color: #ffffff; }
+    .btn.primary { background: #ffffff; color: #000000; border-color: #ffffff; }
+    .btn.primary:hover { transform: translateY(-2px); box-shadow: 0 10px 28px -10px rgba(255, 255, 255, 0.35); }
+    .btn:disabled { opacity: 0.5; pointer-events: none; }
+    @media (max-width: 520px) {
+      .editor-row, .editor-labels { grid-template-columns: 1.5rem 1fr; }
+      .editor-row .field:last-child { grid-column: 2; }
+      .editor-labels span:last-child { display: none; }
+    }
+
     @media (max-width: 420px) {
       main { padding-top: 2.5rem; }
       .card { padding: 1rem 0.85rem; }
@@ -304,6 +377,7 @@
       <div class="pills">
         <span class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Connecting</span></span>
         <span class="pill" id="progressPill">0 of 6 played</span>
+        <button type="button" class="pill" id="editTeamsBtn" aria-expanded="false" aria-controls="teamEditor">Edit teams</button>
       </div>
     </header>
 
@@ -311,6 +385,19 @@
       <small>Champions</small>
       <strong id="championName"></strong>
     </div>
+
+    <section class="card" id="teamEditor" hidden>
+      <div class="card-head">
+        <h2>Teams</h2>
+        <span class="hint" id="editorHint">Name your team and list its players</span>
+      </div>
+      <div class="editor-labels"><span>#</span><span>Team name</span><span>Players</span></div>
+      <div id="editorRows"></div>
+      <div class="editor-actions">
+        <button type="button" class="btn" id="editorCancel">Cancel</button>
+        <button type="button" class="btn primary" id="editorSave">Save teams</button>
+      </div>
+    </section>
 
     <section class="card">
       <div class="card-head">
@@ -334,7 +421,17 @@
 
   <script>
     const DATABASE_URL = "https://admin-dragomir-default-rtdb.europe-west1.firebasedatabase.app";
-    const TEAMS = ["Dragomir + Leo", "Aurimas + Oskar", "Alex + Norris", "Eesah + Rayan"];
+    // Each team has an optional name and the players in it. Edits are stored in
+    // Firebase (padel/teams/t0..t3) so everyone sees them live; these are the defaults.
+    const DEFAULT_TEAMS = [
+      { name: "", players: "Dragomir + Leo" },
+      { name: "", players: "Aurimas + Oskar" },
+      { name: "", players: "Alex + Norris" },
+      { name: "", players: "Eesah + Rayan" },
+    ];
+    let TEAMS = DEFAULT_TEAMS.map(t => ({ ...t }));
+    let teamsRef = null;
+    const teamLabel = t => t.name || t.players;
     // Round robin order: every team plays once before anyone plays twice.
     const MATCHES = [
       { id: "m1", a: 0, b: 3 }, { id: "m2", a: 1, b: 2 },
@@ -347,7 +444,7 @@
     const $ = id => document.getElementById(id);
 
     function standings() {
-      const rows = TEAMS.map((name, i) => ({ i, name, p: 0, w: 0, l: 0, pts: 0 }));
+      const rows = TEAMS.map((t, i) => ({ i, name: teamLabel(t), sub: t.name ? t.players : "", p: 0, w: 0, l: 0, pts: 0 }));
       for (const m of MATCHES) {
         const w = winners[m.id];
         if (!w) continue;
@@ -376,6 +473,12 @@
             const span = document.createElement("span");
             span.className = cls;
             span.textContent = v;
+            if (cls === "team-name" && r.sub) {
+              const sub = document.createElement("small");
+              sub.className = "team-sub";
+              sub.textContent = r.sub;
+              span.append(sub);
+            }
             row.append(span);
           });
         box.append(row);
@@ -394,17 +497,17 @@
         const vs = document.createElement("span");
         vs.className = "vs";
         vs.textContent = "vs";
-        row.append(pickButton(m.id, "a", TEAMS[m.a]), vs, pickButton(m.id, "b", TEAMS[m.b]));
+        row.append(pickButton(m.id, "a"), vs, pickButton(m.id, "b"));
         $("matches").append(row);
       }
     }
 
-    function pickButton(id, side, team) {
+    function pickButton(id, side) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "pick";
       btn.id = `pick-${id}-${side}`;
-      btn.textContent = team;
+      btn.innerHTML = '<span class="pick-name"></span><span class="pick-sub"></span>';
       btn.addEventListener("click", () => pick(id, side));
       return btn;
     }
@@ -414,10 +517,13 @@
         const w = winners[m.id];
         for (const side of ["a", "b"]) {
           const btn = $(`pick-${m.id}-${side}`);
+          const team = TEAMS[side === "a" ? m.a : m.b];
+          btn.querySelector(".pick-name").textContent = teamLabel(team);
+          btn.querySelector(".pick-sub").textContent = team.name ? team.players : "";
           btn.classList.toggle("won", w === side);
           btn.classList.toggle("lost", !!w && w !== side);
           btn.setAttribute("aria-pressed", String(w === side));
-          btn.title = w === side ? "Tap again to undo" : `${btn.textContent} won`;
+          btn.title = w === side ? "Tap again to undo" : `${teamLabel(team)} won`;
         }
       }
     }
@@ -445,6 +551,83 @@
       $("matchHint").className = isError ? "hint error-text" : "hint";
     }
 
+    // ---- Team editor ----
+    function openEditor() {
+      const rows = $("editorRows");
+      rows.innerHTML = "";
+      TEAMS.forEach((t, i) => {
+        const row = document.createElement("div");
+        row.className = "editor-row";
+        const n = document.createElement("span");
+        n.className = "rank";
+        n.textContent = i + 1;
+        const name = document.createElement("input");
+        name.className = "field";
+        name.id = `edit-name-${i}`;
+        name.placeholder = "Team name";
+        name.maxLength = 24;
+        name.value = t.name;
+        name.setAttribute("aria-label", `Team ${i + 1} name`);
+        const players = document.createElement("input");
+        players.className = "field";
+        players.id = `edit-players-${i}`;
+        players.placeholder = "Player + Player";
+        players.maxLength = 40;
+        players.value = t.players;
+        players.setAttribute("aria-label", `Team ${i + 1} players`);
+        row.append(n, name, players);
+        rows.append(row);
+      });
+      $("editorHint").textContent = "Name your team and list its players";
+      $("editorHint").className = "hint";
+      $("teamEditor").hidden = false;
+      $("editTeamsBtn").setAttribute("aria-expanded", "true");
+      $("edit-name-0").focus();
+    }
+
+    function closeEditor() {
+      $("teamEditor").hidden = true;
+      $("editTeamsBtn").setAttribute("aria-expanded", "false");
+    }
+
+    async function saveTeams() {
+      const update = {};
+      for (let i = 0; i < TEAMS.length; i++) {
+        const name = $(`edit-name-${i}`).value.trim();
+        const players = $(`edit-players-${i}`).value.trim();
+        if (!players) {
+          $("editorHint").textContent = `Team ${i + 1} needs its players listed`;
+          $("editorHint").className = "hint error-text";
+          $(`edit-players-${i}`).focus();
+          return;
+        }
+        update["t" + i] = { name, players };
+      }
+      if (!teamsRef) {
+        $("editorHint").textContent = "Offline. Can't save right now.";
+        $("editorHint").className = "hint error-text";
+        return;
+      }
+      $("editorSave").disabled = true;
+      try {
+        await teamsRef.update(update);
+        closeEditor();
+      } catch (e) {
+        $("editorHint").textContent = "Didn't save. Check your connection and try again.";
+        $("editorHint").className = "hint error-text";
+      } finally {
+        $("editorSave").disabled = false;
+      }
+    }
+
+    $("editTeamsBtn").addEventListener("click", () => $("teamEditor").hidden ? openEditor() : closeEditor());
+    $("editorCancel").addEventListener("click", closeEditor);
+    $("editorSave").addEventListener("click", saveTeams);
+    $("teamEditor").addEventListener("keydown", e => {
+      if (e.key === "Enter" && e.target.tagName === "INPUT") saveTeams();
+      if (e.key === "Escape") closeEditor();
+    });
+
     buildMatches();
     render();
 
@@ -460,6 +643,17 @@
         }
         render();
       }, () => setStatus("offline", "Can't load results"));
+      teamsRef = db.ref("padel/teams");
+      teamsRef.on("value", snap => {
+        const data = snap.val() || {};
+        TEAMS = DEFAULT_TEAMS.map((d, i) => {
+          const v = data["t" + i];
+          return v && typeof v.players === "string" && v.players.trim()
+            ? { name: typeof v.name === "string" ? v.name : "", players: v.players }
+            : { ...d };
+        });
+        render();
+      });
       db.ref(".info/connected").on("value", snap => {
         if (snap.val()) setStatus("live", "Live");
         else setStatus("offline", "Reconnecting");
