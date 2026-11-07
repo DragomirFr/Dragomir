@@ -47,7 +47,7 @@
     button { font: inherit; color: inherit; }
 
     main {
-      max-width: 760px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 3rem max(1.25rem, env(safe-area-inset-right)) 4rem max(1.25rem, env(safe-area-inset-left));
       display: flex;
@@ -100,6 +100,20 @@
     .progress .b { height: 4px; border-radius: 9999px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
     .progress .b i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #ffffff); border-radius: inherit; transition: width 0.8s var(--ease); }
 
+    /* Two-column layout on wide screens: standings + head-to-head | matches + activity */
+    .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+    .col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+    /* Narrow screens: single column, in the order standings, matches, head-to-head, activity */
+    @media (max-width: 900px) {
+      .cols { display: flex; flex-direction: column; }
+      .col { display: contents; }
+      .o1 { order: 1; } .o2 { order: 2; } .o3 { order: 3; } .o4 { order: 4; }
+    }
+    /* Live boards sit side by side when more than one match is live */
+    #hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 1.25rem; }
+    #hero .champ, #hero .card.board:only-child { grid-column: 1 / -1; }
+    #hero:empty { display: none; }
+
     /* Cards */
     .card {
       background: var(--card-bg);
@@ -117,7 +131,6 @@
     .error-text { color: var(--error); }
 
     /* Hero scoreboard */
-    #hero { display: flex; flex-direction: column; gap: 1.25rem; }
     .board { position: relative; overflow: hidden; }
     .board.live { border-color: rgba(34, 197, 94, 0.3); }
     .board::before { content: ""; position: absolute; inset: -40% -10% auto; height: 180px; background: radial-gradient(closest-side, rgba(120, 119, 198, 0.16), transparent); pointer-events: none; }
@@ -300,33 +313,39 @@
       </div>
     </section>
 
-    <section class="card">
-      <div class="card-head">
-        <h2>Standings</h2>
-        <span class="hint" id="ptsHint">Win 2–0 = 3 · 2–1 = 2 · loss 1–2 = 1</span>
+    <div class="cols">
+      <div class="col">
+        <section class="card o1">
+          <div class="card-head">
+            <h2>Standings</h2>
+            <span class="hint" id="ptsHint">Win 2–0 = 3 · 2–1 = 2 · loss 1–2 = 1</span>
+          </div>
+          <div class="row labels"><span>#</span><span>Team</span><span>P</span><span>W</span><span>L</span><span class="hide-s">Sets</span><span class="hide-s">±G</span><span>Pts</span></div>
+          <div id="standings"></div>
+          <p class="note">Level on points: head-to-head, then set difference, then game difference.</p>
+        </section>
+
+        <section class="card no-tv o3">
+          <div class="card-head"><h2>Head to head</h2><span class="hint">Sets, row team first</span></div>
+          <div id="matrix"></div>
+        </section>
       </div>
-      <div class="row labels"><span>#</span><span>Team</span><span>P</span><span>W</span><span>L</span><span class="hide-s">Sets</span><span class="hide-s">±G</span><span>Pts</span></div>
-      <div id="standings"></div>
-      <p class="note">Level on points: head-to-head, then set difference, then game difference.</p>
-    </section>
 
-    <section class="card">
-      <div class="card-head">
-        <h2>Matches</h2>
-        <span class="hint" id="matchHint">Tap a team for a quick result · Score for sets</span>
+      <div class="col">
+        <section class="card o2">
+          <div class="card-head">
+            <h2>Matches</h2>
+            <span class="hint" id="matchHint">Tap a team for a quick result · Score for sets</span>
+          </div>
+          <div class="matches" id="matches"></div>
+        </section>
+
+        <section class="card o4">
+          <div class="card-head"><h2>Activity</h2></div>
+          <ul class="feed" id="feed"></ul>
+        </section>
       </div>
-      <div class="matches" id="matches"></div>
-    </section>
-
-    <section class="card no-tv">
-      <div class="card-head"><h2>Head to head</h2><span class="hint">Sets, row team first</span></div>
-      <div id="matrix"></div>
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>Activity</h2></div>
-      <ul class="feed" id="feed"></ul>
-    </section>
+    </div>
 
     <footer><a href="https://dragomir.xyz">dragomir.xyz</a></footer>
   </main>
