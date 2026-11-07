@@ -16,6 +16,32 @@
           ".validate": "newData.hasChildren(['name', 'players']) && newData.child('name').isString() && newData.child('name').val().length <= 24 && newData.child('players').isString() && newData.child('players').val().length > 0 && newData.child('players').val().length <= 40"
         }
       },
+      "scores": {
+        "$match": {
+          ".write": "$match.matches(/^m[1-6]$/)",
+          ".validate": "newData.hasChildren(['status']) && (newData.child('status').val() === 'live' || newData.child('status').val() === 'final')",
+          "status": { ".validate": "newData.isString()" },
+          "started": { ".validate": "newData.isNumber()" },
+          "t": { ".validate": "newData.isNumber()" },
+          "sets": {
+            "$i": {
+              "$j": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 30" },
+              ".validate": "$i.matches(/^[0-2]$/)"
+            }
+          },
+          "$other": { ".validate": false }
+        }
+      },
+      "feed": {
+        "$id": {
+          ".write": "!data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['t', 'text']) && newData.child('t').isNumber() && newData.child('text').isString() && newData.child('text').val().length <= 140",
+          "t": { ".validate": true },
+          "text": { ".validate": true },
+          "kind": { ".validate": "newData.isString() && newData.val().length <= 2" },
+          "$other": { ".validate": false }
+        }
+      },
       "matches": {
         "$match": {
           ".write": "$match.matches(/^m[1-6]$/)",
