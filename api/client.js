@@ -31,20 +31,30 @@ const ADMIN_MAX_FAILS = 10;
 const ADMIN_LOCK_MS = 15 * 60 * 1000;
 // Cape styles a player can pick (textures ship with the client). anim_* capes are animated.
 const CAPES = ['classic', 'crimson', 'ocean', 'emerald', 'gold', 'void', 'aurora', 'sunset', 'cherry', 'frost',
-  'founder', 'anim_rainbow', 'anim_flame', 'anim_galaxy'];
+  'toxic', 'candy', 'midnight', 'synthwave', 'checker', 'camo', 'launcher', 'royal', 'dragon', 'founder',
+  'anim_rainbow', 'anim_coderain', 'anim_tide', 'anim_flame', 'anim_storm', 'anim_galaxy'];
 // Cosmetic extras (drawn by the client, no textures needed). Must match the lists in the client's Cosmetics class.
-const HATS = ['halo', 'crown', 'horns', 'tophat', 'catears', 'bunnyears', 'pumpkin', 'santa'];
-const WINGS = ['angel', 'demon', 'butterfly', 'phoenix'];
-const TRAILS = ['hearts', 'flames', 'sparkles', 'notes', 'petals', 'souls', 'magic', 'snow'];
-const ACCESSORIES = ['backpack', 'scarf', 'aura'];
-const PETS = ['crystal', 'orb', 'bee'];
+const HATS = ['halo', 'crown', 'horns', 'tophat', 'catears', 'bunnyears', 'headphones', 'party', 'flowers', 'wizard', 'pumpkin', 'santa'];
+const WINGS = ['angel', 'demon', 'butterfly', 'phoenix', 'shadow', 'fairy', 'dragon'];
+const TRAILS = ['hearts', 'flames', 'sparkles', 'notes', 'petals', 'souls', 'magic', 'snow', 'stars', 'runes', 'bubbles', 'glow'];
+const ACCESSORIES = ['backpack', 'scarf', 'bandana', 'sword', 'jetpack', 'aura'];
+const PETS = ['crystal', 'orb', 'bee', 'slime', 'ghost', 'dragon'];
 // Cosmetics that have to be unlocked (everything else is free). The client shows the same rules, but the server decides.
 //   hours: total time played with Dragomir; founder: an account first seen before FOUNDER_UNTIL; month: worn only in
-//   that month (0 = January). Anything can also be unlocked by a friend's gift.
+//   that month (0 = January); launcher: an account that has opened the Dragomir Launcher. Anything can also be
+//   unlocked by a friend's gift.
 const UNLOCKS = {
   'cape:founder': { founder: true },
   'cape:anim_flame': { hours: 5 },
   'cape:anim_galaxy': { hours: 20 },
+  'cape:launcher': { launcher: true },
+  'cape:anim_storm': { hours: 15 },
+  'cape:royal': { hours: 40 },
+  'cape:dragon': { hours: 50 },
+  'hat:wizard': { hours: 8 },
+  'wings:dragon': { hours: 25 },
+  'pet:dragon': { hours: 60 },
+  'accessory:jetpack': { hours: 35 },
   'pet:crystal': { hours: 10 },
   'pet:bee': { founder: true },
   'accessory:aura': { hours: 30 },
@@ -273,6 +283,7 @@ function createHandler(deps = {}) {
     if (user.gifts && user.gifts[item]) return true;
     if (rule.hours && (user.playMs || 0) >= rule.hours * 3600 * 1000) return true;
     if (rule.founder && user.firstSeen && user.firstSeen < FOUNDER_UNTIL) return true;
+    if (rule.launcher && user.launcher) return true;
     if (rule.month !== undefined && new Date(now()).getUTCMonth() === rule.month) return true;
     return false;
   }
@@ -756,7 +767,13 @@ function createHandler(deps = {}) {
       // For the launcher: everything the heartbeat tells about friends, without going online or counting play time.
       const [state, notice, u] = await Promise.all([friendState(me.u), notices(), get(`users/${me.u}`)]);
       const user = u || {};
-      return { ...state, ...notice, me: { playMs: user.playMs || 0, unlocked: unlocked(user), admin: isAdmin(me.u) } };
+      // The first time the launcher asks, the account is marked as a launcher user (which unlocks the Launcher cape).
+      if (body.launcher && !user.launcher) {
+        user.launcher = true;
+        await update({ [`users/${me.u}/launcher`]: true });
+      }
+      return { ...state, ...notice, party: await partyState(me.u, user.party),
+        me: { playMs: user.playMs || 0, unlocked: unlocked(user), admin: isAdmin(me.u) } };
     }
     if (op === 'add') {
       const target = await uuidForName(body.name);
