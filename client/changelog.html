@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Changelog · Dragomir Client</title>
-  <meta name="description" content="Every Dragomir Client release and what changed, from the GitHub release notes.">
+  <meta name="description" content="Every Dragomir Client and Dragomir Launcher release and what changed, from the GitHub release notes.">
   <link rel="icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,6 +77,21 @@
 
     .status { color: var(--text-muted); padding: 2rem 0; text-align: center; }
 
+    .switch {
+      display: inline-flex; gap: 0.25rem; padding: 0.25rem; margin-bottom: 1.25rem;
+      border-radius: 9999px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border);
+    }
+    .switch button {
+      font: inherit; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);
+      background: none; border: 0; padding: 0.4rem 1.1rem; border-radius: 9999px; cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .switch button:hover { color: var(--text-main); }
+    .switch button[aria-selected="true"] {
+      background: rgba(120, 119, 198, 0.18); color: #c4c3f5; box-shadow: inset 0 0 0 1px rgba(120, 119, 198, 0.4);
+    }
+    .switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
     footer { padding: 2.5rem 0 3rem; color: var(--text-subtle); font-size: 0.8rem; text-align: center; }
   </style>
 </head>
@@ -89,10 +104,15 @@
 
     <header>
       <h1>Changelog</h1>
-      <p class="lead">Every release and what changed. Players on 1.5.0 or newer get each update from the main menu in game.</p>
+      <p class="lead" id="lead">Every release and what changed. Players on 1.5.0 or newer get each update from the main menu in game.</p>
     </header>
 
-    <main id="releases">
+    <div class="switch" role="tablist" aria-label="Which releases">
+      <button type="button" role="tab" id="tab-client" data-kind="client" aria-controls="releases" aria-selected="true">Client</button>
+      <button type="button" role="tab" id="tab-launcher" data-kind="launcher" aria-controls="releases" aria-selected="false">Launcher</button>
+    </div>
+
+    <main id="releases" role="tabpanel">
       <p class="status" id="status">Loading releases…</p>
     </main>
 
@@ -100,8 +120,15 @@
   </div>
 
   <script>
-    // Only client releases (tags client-v…), never drafts or pre-releases, newest first.
-    const API = 'https://api.github.com/repos/DragomirFr/Dragomir/releases?per_page=50';
+    // Client releases (tags client-v…) or launcher releases (launcher-v…), never drafts or pre-releases, newest first.
+    // Both come from one request; the switch only changes which ones are shown. #launcher opens the launcher's.
+    const API = 'https://api.github.com/repos/DragomirFr/Dragomir/releases?per_page=100';
+    const KINDS = {
+      client: { prefix: 'client-v', lead: 'Every release and what changed. Players on 1.5.0 or newer get each update from the main menu in game.' },
+      launcher: { prefix: 'launcher-v', lead: 'Every Dragomir Launcher release and what changed. On Windows the launcher updates itself: press "Update now" when it offers one.' },
+    };
+    let kind = location.hash === '#launcher' ? 'launcher' : 'client';
+    let releases = null;
 
     function escapeHtml(text) {
       return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -135,15 +162,16 @@
       return out.join('');
     }
 
-    function render(releases) {
+    function render() {
       const main = document.getElementById('releases');
-      const client = releases.filter((r) => !r.draft && !r.prerelease && r.tag_name.startsWith('client-v'));
-      if (!client.length) {
-        document.getElementById('status').textContent = 'No releases yet.';
+      const { prefix } = KINDS[kind];
+      const shown = releases.filter((r) => !r.draft && !r.prerelease && r.tag_name.startsWith(prefix));
+      if (!shown.length) {
+        main.innerHTML = '<p class="status">No releases yet.</p>';
         return;
       }
-      main.innerHTML = client.map((r, i) => {
-        const version = escapeHtml(r.tag_name.slice('client-v'.length));
+      main.innerHTML = shown.map((r, i) => {
+        const version = escapeHtml(r.tag_name.slice(prefix.length));
         const date = new Date(r.published_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
         return `<article class="release">
           <div class="release-head">
@@ -155,12 +183,45 @@
       }).join('');
     }
 
+    /** Marks the chosen tab, swaps the intro line and, once the releases are in, shows that kind. */
+    function show() {
+      for (const tab of document.querySelectorAll('.switch button')) {
+        const on = tab.dataset.kind === kind;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+      }
+      document.getElementById('releases').setAttribute('aria-labelledby', `tab-${kind}`);
+      document.getElementById('lead').textContent = KINDS[kind].lead;
+      if (releases) render();
+    }
+
+    function choose(next) {
+      if (next === kind) return;
+      kind = next;
+      history.replaceState(null, '', next === 'launcher' ? '#launcher' : location.pathname + location.search);
+      show();
+    }
+
+    const tabs = [...document.querySelectorAll('.switch button')];
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => choose(tab.dataset.kind));
+      // Arrow keys move between the two tabs, as in any tab list.
+      tab.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus();
+        choose(next.dataset.kind);
+      });
+    });
+    window.addEventListener('hashchange', () => { kind = location.hash === '#launcher' ? 'launcher' : 'client'; show(); });
+    show();
+
     fetch(API, { headers: { Accept: 'application/vnd.github+json' } })
       .then((res) => {
         if (!res.ok) throw new Error(res.status === 403 ? 'GitHub is limiting requests right now. Try again in a few minutes.' : `GitHub answered ${res.status}`);
         return res.json();
       })
-      .then(render)
+      .then((list) => { releases = list; render(); })
       .catch((err) => {
         const status = document.getElementById('status');
         status.innerHTML = `Couldn't load the changelog (${escapeHtml(err.message)}). <a class="pill" href="https://github.com/DragomirFr/Dragomir/releases">See the releases on GitHub</a>`;
