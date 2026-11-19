@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dragomir Browser</title>
+  <meta name="description" content="A fast, private web browser for Windows, with Spotify and lyrics on your new tab, a built-in ad blocker and game mode.">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #09090b;
+      --card-bg: rgba(18, 18, 22, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-subtle: #52525b;
+      --accent: #62ccf2;
+      --accent-rgb: 98, 204, 242;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(var(--accent-rgb), 0.13), transparent),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02), transparent 70%);
+      background-repeat: no-repeat;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+
+    .wrap {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 0;
+    }
+
+    .topbar-links { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .pill:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: var(--border-hover);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 4rem 0 3rem;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .hero-logo {
+      width: 88px;
+      height: 88px;
+      border-radius: 22px;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 10px 30px rgba(var(--accent-rgb), 0.35));
+    }
+
+    h1 {
+      font-size: clamp(2.75rem, 8vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      line-height: 1;
+      color: #ffffff;
+    }
+
+    .tagline {
+      margin: 1.25rem auto 0;
+      max-width: 36rem;
+      font-size: clamp(1rem, 2.2vw, 1.15rem);
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .hero-actions {
+      margin-top: 2.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 0.85rem 1.6rem;
+      border-radius: 9999px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .btn-primary:hover {
+      background: #e4e4e7;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--border-hover);
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .meta {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      row-gap: 0.25rem;
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+    }
+
+    .meta span {
+      white-space: nowrap;
+    }
+
+    .meta span + span::before {
+      content: "·";
+      margin: 0 0.5rem;
+    }
+
+    /* Screenshots */
+    .shots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 5rem;
+    }
+
+    .shots figure {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+    }
+
+    .shots img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+    }
+
+    .shots figcaption {
+      position: absolute;
+      left: 0.75rem;
+      bottom: 0.75rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 9999px;
+      background: rgba(9, 9, 11, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 5rem;
+    }
+
+    .eyebrow {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+
+    h2 {
+      margin-top: 0.5rem;
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .section-lead {
+      margin-top: 0.75rem;
+      max-width: 38rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .features {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .card {
+      padding: 1.5rem;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .card p {
+      margin-top: 0.5rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    /* Performance */
+    .perf { margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem; }
+    .perf:hover { transform: none; }
+    .perf-row { display: grid; grid-template-columns: 15rem 1fr 9rem; align-items: center; gap: 1rem; }
+    .perf-label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
+    .perf-row.best .perf-label { color: var(--text-main); }
+    .perf-bar { height: 10px; border-radius: 9999px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+    .perf-bar span { display: block; height: 100%; border-radius: 9999px; background: rgba(var(--accent-rgb), 0.4); }
+    .perf-row.best .perf-bar span { background: var(--accent); }
+    .perf-num { font-size: 0.95rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+    .perf-num small { font-weight: 500; color: var(--text-subtle); font-size: 0.75rem; }
+    .perf-note { margin-top: 0.5rem; font-size: 0.82rem; line-height: 1.6; color: var(--text-subtle); }
+
+    /* Install */
+    .install {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .steps {
+      list-style: none;
+      counter-reset: step;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 1rem;
+      padding: 1.1rem 1.25rem;
+      border-radius: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0;
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 9999px;
+      background: rgba(var(--accent-rgb), 0.16);
+      color: #b9ebfb;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .steps strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .steps a {
+      color: var(--text-main);
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.85em;
+      padding: 0.1rem 0.4rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    .reqs {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .reqs div {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.8rem 1.1rem;
+      font-size: 0.88rem;
+      background: var(--card-bg);
+    }
+
+    .reqs div + div {
+      border-top: 1px solid var(--border);
+    }
+
+    .reqs dt {
+      color: var(--text-muted);
+    }
+
+    .reqs dd {
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .keys {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    kbd {
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.1rem 0.45rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-hover);
+      border-bottom-width: 2px;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+    }
+
+    footer .wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 860px) {
+      .features {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .install {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding: 2.5rem 0 2.5rem;
+      }
+      .shots {
+        grid-template-columns: 1fr;
+      }
+      .features {
+        grid-template-columns: 1fr;
+      }
+      .btn {
+        width: 100%;
+      }
+      .perf-row { grid-template-columns: 1fr; gap: 0.4rem; }
+      .perf-num { text-align: left; }
+      footer .wrap {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <nav class="topbar">
+      <a href="/" class="pill">&larr; Home</a>
+      <span class="topbar-links">
+        <a href="#features" class="pill">Features</a>
+        <a href="#install" class="pill">How to install</a>
+      </span>
+    </nav>
+
+    <header class="hero">
+      <img src="/browser/img/logo.png" alt="Dragomir Browser logo" class="hero-logo" width="88" height="88">
+      <h1>Dragomir Browser</h1>
+      <p class="tagline">A fast, private browser for Windows, with your music and its lyrics right on the new tab page.</p>
+
+      <div class="hero-actions">
+        <a href="https://github.com/DragomirFr/Dragomir/releases/download/browser-v1.0.0/Dragomir-Browser-1.0.0-win-x64.zip" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download for Windows
+        </a>
+        <a href="#install" class="btn btn-secondary">How to install</a>
+      </div>
+      <p class="meta"><span>Version 1.0.0</span><span>Windows 10 &amp; 11 (64-bit)</span><span>157 MB</span><span>Free</span></p>
+    </header>
+
+    <div class="shots">
+      <figure>
+        <img src="/browser/img/newtab.jpg" alt="New tab page with the clock, search box and a Spotify player showing synced lyrics" width="1348" height="770" loading="lazy">
+        <figcaption>New tab with Now Playing</figcaption>
+      </figure>
+      <figure>
+        <img src="/browser/img/browsing.jpg" alt="Dragomir Browser showing a Wikipedia article with tabs and the address bar" width="1376" height="868" loading="lazy">
+        <figcaption>Browsing</figcaption>
+      </figure>
+      <figure>
+        <img src="/browser/img/sessions.jpg" alt="Saved sessions menu listing School and Gaming sessions" width="1360" height="860" loading="lazy">
+        <figcaption>Saved sessions</figcaption>
+      </figure>
+      <figure>
+        <img src="/browser/img/settings.jpg" alt="Appearance settings with theme presets and accent colours" width="1348" height="770" loading="lazy">
+        <figcaption>Make it yours</figcaption>
+      </figure>
+    </div>
+
+    <section id="features">
+      <p class="eyebrow">Features</p>
+      <h2>Everything built in</h2>
+      <p class="section-lead">No extensions needed for the basics. Press <kbd>Ctrl+K</kbd> anywhere to search every command, tab, bookmark and setting.</p>
+
+      <div class="features">
+        <div class="card">
+          <h3>Now Playing &amp; lyrics</h3>
+          <p>Whatever's playing on your PC (Spotify, YouTube, other apps) shows on the new tab with album art, seek, shuffle and repeat, plus lyrics that scroll along with the song.</p>
+        </div>
+        <div class="card">
+          <h3>Ad &amp; tracker blocker</h3>
+          <p>Blocks ads, trackers and cookie banners out of the box, with a per-site switch when something breaks.</p>
+        </div>
+        <div class="card">
+          <h3>Game mode</h3>
+          <p>When a full-screen game is running, background tabs sleep and the browser steps back so the game gets your RAM and CPU. Music keeps playing.</p>
+        </div>
+        <div class="card">
+          <h3>Saved sessions</h3>
+          <p>Save a window's tabs as "School" or "Gaming" and reopen them in one click whenever you need them.</p>
+        </div>
+        <div class="card">
+          <h3>Workspaces &amp; tab groups</h3>
+          <p>Keep separate sets of tabs, each with its own colour and, if you want, its own logins. Group tabs, pin them, or peek at a link without leaving the page.</p>
+        </div>
+        <div class="card">
+          <h3>Split view &amp; vertical tabs</h3>
+          <p>Two pages side by side with <kbd>Ctrl+\</kbd>, tabs down the side with <kbd>Ctrl+Shift+M</kbd>, and a focus mode that hides everything but the page.</p>
+        </div>
+        <div class="card">
+          <h3>Memory saver</h3>
+          <p>Tabs you haven't used in a while go to sleep and wake up when you click them. Three levels, from off to maximum.</p>
+        </div>
+        <div class="card">
+          <h3>Bring your stuff</h3>
+          <p>Import bookmarks, history and passwords from Chrome, Edge, Brave, Opera, Vivaldi or Firefox in a couple of clicks.</p>
+        </div>
+        <div class="card">
+          <h3>Password manager</h3>
+          <p>Saves and fills logins, generates strong passwords and flags weak or reused ones. Passwords are encrypted with your Windows account.</p>
+        </div>
+        <div class="card">
+          <h3>Dragomir AI</h3>
+          <p>Summarise a page, ask about it or have it explained, in a side panel next to what you're reading. Uses your own Claude API key.</p>
+        </div>
+        <div class="card">
+          <h3>Make it yours</h3>
+          <p>Themes, accent colours, live wallpapers, clock fonts, tab styles, layouts and custom CSS. Almost every part of the look can be changed.</p>
+        </div>
+        <div class="card">
+          <h3>Extensions &amp; more</h3>
+          <p>Chrome Web Store extensions, reader mode, translation, picture-in-picture, full-page screenshots, sidebar web apps and user scripts.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="performance">
+      <p class="eyebrow">Performance</p>
+      <h2>Lighter on memory</h2>
+      <p class="section-lead">The same six tabs (Wikipedia, GitHub, Hacker News, a simple page, the About page and a new tab) on a fresh profile, measured with the browser's own task manager.</p>
+
+      <div class="perf card">
+        <div class="perf-row">
+          <span class="perf-label">Before the memory changes</span>
+          <span class="perf-bar"><span style="width: 100%"></span></span>
+          <span class="perf-num">1,723 <small>MB</small></span>
+        </div>
+        <div class="perf-row best">
+          <span class="perf-label">Dragomir Browser 1.0</span>
+          <span class="perf-bar"><span style="width: 77%"></span></span>
+          <span class="perf-num">1,331 <small>MB</small></span>
+        </div>
+        <p class="perf-note">23% less memory, mostly from loading small pop-ups only when they're needed and not keeping a hidden spare tab. The Now Playing helper is a 2.6 MB native program instead of a 64 MB script host. Numbers will differ on your PC and with your tabs.</p>
+      </div>
+    </section>
+
+    <section id="install" class="install">
+      <div>
+        <p class="eyebrow">Install</p>
+        <h2>Up and running in a minute</h2>
+        <p class="section-lead">Dragomir Browser comes as a zip: there's no installer, so nothing to set up and nothing left behind if you delete it.</p>
+
+        <dl class="reqs">
+          <div><dt>Windows</dt><dd>10 or 11, 64-bit</dd></div>
+          <div><dt>Download</dt><dd>157 MB</dd></div>
+          <div><dt>Space needed</dt><dd>About 400 MB</dd></div>
+          <div><dt>Engine</dt><dd>Chromium 156</dd></div>
+        </dl>
+
+        <p class="keys">Handy keys: <kbd>Ctrl+K</kbd> command palette, <kbd>Ctrl+T</kbd> new tab, <kbd>Ctrl+Shift+T</kbd> reopen a closed tab, <kbd>Ctrl+\</kbd> split view, <kbd>Ctrl+Shift+S</kbd> screenshot.</p>
+      </div>
+
+      <ol class="steps">
+        <li><span><a href="https://github.com/DragomirFr/Dragomir/releases/download/browser-v1.0.0/Dragomir-Browser-1.0.0-win-x64.zip"><strong>Download Dragomir Browser</strong></a> (a .zip file).</span></li>
+        <li><span>Right-click the zip and choose <strong>Extract All…</strong>. Put it somewhere you'll keep, like your Documents folder. Don't run it from inside the zip.</span></li>
+        <li><span>Open the extracted <strong>Dragomir Browser</strong> folder and double-click <code>Dragomir Browser.exe</code>. If Windows says it protected your PC, choose <strong>More info → Run anyway</strong>; that appears because the app isn't code-signed yet.</span></li>
+        <li><span>It adds itself to the Start menu the first time it runs. To keep it handy, right-click its icon on the taskbar and choose <strong>Pin to taskbar</strong>.</span></li>
+        <li><span>To bring over your bookmarks, history and passwords, open <strong>Settings → Import &amp; export</strong>, pick your old browser and press <strong>Import</strong>.</span></li>
+        <li><span>To open links in Dragomir, go to <strong>Settings → Windows &amp; updates</strong> and choose <strong>Set as default</strong>.</span></li>
+        <li><span>New versions are posted on this page. To update, extract the new zip over the old folder. Your tabs, bookmarks and settings are kept in <code>%appdata%\Dragomir Browser</code>, so nothing is lost.</span></li>
+      </ol>
+    </section>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <span>&copy; 2026 Dragomir. Built on the open-source Chromium engine; its licences are included in the download. Not affiliated with Google, Microsoft or Spotify.</span>
+      <a href="/" class="pill">Back to home</a>
+    </div>
+  </footer>
+
+</body>
+</html>

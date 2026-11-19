@@ -9,6 +9,10 @@
       "destination": "/client/index.html"
     },
     {
+      "source": "/browser",
+      "destination": "/browser/index.html"
+    },
+    {
       "source": "/spotify",
       "destination": "/spotify/index.html"
     },
